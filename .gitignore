@@ -1,0 +1,5 @@
+/bin/
+/adskip
+*.vtt
+*.info.json
+.DS_Store
