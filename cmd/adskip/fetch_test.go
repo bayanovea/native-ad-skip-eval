@@ -17,7 +17,7 @@ func TestPickTrackShapes(t *testing.T) {
 		ok   bool
 	}{
 		{"auto label", []ytdlp.Track{manifest, {Ext: "Ru AUTO", URL: "u2"}}, nil, transcript.TrackAuto, true},
-		{"plain label", []ytdlp.Track{manifest, {Ext: "vtt", URL: "u2"}}, nil, transcript.TrackManual, true},
+		{"plain label is not evidence", []ytdlp.Track{manifest, {Ext: "vtt", URL: "u2"}}, nil, transcript.TrackUnknown, true},
 		{"manifest only", []ytdlp.Track{manifest}, nil, transcript.TrackUnknown, true},
 		{"automatic_captions", nil, map[string][]ytdlp.Track{"ru": {{Ext: "vtt"}}}, transcript.TrackAuto, true},
 		{"none", nil, nil, transcript.TrackNone, false},

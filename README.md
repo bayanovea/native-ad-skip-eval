@@ -78,10 +78,10 @@ Videos without a subtitle track get a `meta` line with `"track_type":"none"` and
 10-video spike set, 2 of 10 had no track; coverage is itself a number for the write-up.
 
 `track_type` comes from the player's own label, which yt-dlp exposes as the `ext` of the
-non-manifest subtitle entry: `Ru AUTO` → `auto`, a plain `vtt` → `manual` (uploaded by the
-author, as far as the label tells). On the spike set: 1 auto, 7 manual, 2 none. It is recorded so
-the eval can be sliced by track type; the auto/manual split still needs a check against the player
-on a few videos.
+non-manifest subtitle entry: `Ru AUTO` → `auto`. A plain `vtt` label is *not* evidence of an
+uploaded track: a video the player marks as auto-generated came through as `vtt` as well, so
+those stay `unknown`. On the spike set: 1 auto, 7 unknown, 2 none. Recorded so the eval can be
+sliced by track type once a reliable manual/auto signal exists.
 
 ## Data policy
 

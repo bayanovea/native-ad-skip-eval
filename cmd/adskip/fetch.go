@@ -221,8 +221,10 @@ func failed(r result, err error) result {
 
 // pickTrack decides which subtitle track to download for lang and what type it is.
 // Type comes from the player-labelled entry (no manifest_url): a label containing
-// "auto" means auto-subtitles; a plain label means an uploaded track. The entry
-// from the stream manifest carries no label, so it is never used for typing.
+// "auto" means auto-subtitles. A plain "vtt" label is NOT evidence of an uploaded
+// track: a video labelled "Автоматические" in the player showed up as "vtt" too
+// (checked 2026-10-10), so anything else stays unknown. The entry from the stream
+// manifest carries no label, so it is never used for typing.
 // Returns auto=true only when the track lives under automatic_captions, which
 // selects --write-auto-subs.
 func pickTrack(info *ytdlp.Info, lang string) (t ytdlp.Track, typ transcript.TrackType, auto bool, ok bool) {
@@ -237,8 +239,6 @@ func pickTrack(info *ytdlp.Info, lang string) (t ytdlp.Track, typ transcript.Tra
 			t = tr
 			if looksAuto(tr) {
 				typ = transcript.TrackAuto
-			} else {
-				typ = transcript.TrackManual
 			}
 			break
 		}
