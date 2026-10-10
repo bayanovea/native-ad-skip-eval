@@ -162,7 +162,7 @@ func (f *fetcher) one(ctx context.Context, id string) result {
 	}
 
 	// 2. pick a track: author-uploaded first, auto as fallback
-	track, auto, ok := pickTrack(info, f.opts.lang)
+	track, trackType, auto, ok := pickTrack(info, f.opts.lang)
 	if !ok {
 		meta.TrackType = transcript.TrackNone
 		if err := transcript.WriteFile(jsonlPath, meta, nil); err != nil {
@@ -171,11 +171,8 @@ func (f *fetcher) one(ctx context.Context, id string) result {
 		r.status = "no-subs"
 		return r
 	}
-	meta.TrackName = track.Name
-	meta.TrackType = transcript.TrackManual
-	if auto || looksAuto(track) {
-		meta.TrackType = transcript.TrackAuto
-	}
+	meta.TrackType = trackType
+	meta.TrackName = strings.TrimSpace(track.Name + " " + track.Ext) // the player label, e.g. "Ru AUTO"
 
 	// 3. VTT (cached unless -force)
 	vttPath := findVTT(vttBase, f.opts.lang)
@@ -222,28 +219,35 @@ func failed(r result, err error) result {
 	return r
 }
 
-// pickTrack returns the track for lang: a manual one from Subtitles if present, else
-// an automatic caption. The platform lists its auto track under Subtitles with a telling name,
-// so looksAuto() is applied by the caller as well.
-func pickTrack(info *ytdlp.Info, lang string) (t ytdlp.Track, auto bool, ok bool) {
-	var autoFromSubs *ytdlp.Track
-	for _, tr := range info.Subtitles[lang] {
-		tr := tr
-		if looksAuto(tr) {
-			if autoFromSubs == nil {
-				autoFromSubs = &tr
+// pickTrack decides which subtitle track to download for lang and what type it is.
+// Type comes from the player-labelled entry (no manifest_url): a label containing
+// "auto" means auto-subtitles; a plain label means an uploaded track. The entry
+// from the stream manifest carries no label, so it is never used for typing.
+// Returns auto=true only when the track lives under automatic_captions, which
+// selects --write-auto-subs.
+func pickTrack(info *ytdlp.Info, lang string) (t ytdlp.Track, typ transcript.TrackType, auto bool, ok bool) {
+	subs := info.Subtitles[lang]
+	if len(subs) > 0 {
+		typ = transcript.TrackUnknown
+		t = subs[0]
+		for _, tr := range subs {
+			if tr.ManifestURL != "" {
+				continue // manifest-derived entry: format only, no label
 			}
-			continue
+			t = tr
+			if looksAuto(tr) {
+				typ = transcript.TrackAuto
+			} else {
+				typ = transcript.TrackManual
+			}
+			break
 		}
-		return tr, false, true
-	}
-	if autoFromSubs != nil {
-		return *autoFromSubs, false, true // downloaded with --write-subs, typed as auto by name
+		return t, typ, false, true
 	}
 	if trs := info.AutomaticCaptions[lang]; len(trs) > 0 {
-		return trs[0], true, true
+		return trs[0], transcript.TrackAuto, true, true
 	}
-	return ytdlp.Track{}, false, false
+	return ytdlp.Track{}, transcript.TrackNone, false, false
 }
 
 func looksAuto(t ytdlp.Track) bool {

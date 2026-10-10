@@ -8,7 +8,7 @@ where viewers mark ad segments (sponsor, intro, self-promotion, credits) and oth
 Here lives the **detector**, the **eval harness** that scores it against human labels, the
 **anonymised dataset**, and the write-up. Written in Go.
 
-**Status (2026-10-10):** step 1 of 6 — transcript fetching. No model calls yet, no numbers yet.
+**Status (2026-10-10):** step 1 of 6 done — the 10-video spike set fetches and collapses from one command (8 transcripts, 2 videos without subtitles). No model calls yet, no numbers yet.
 
 ## Why this exists
 
@@ -77,6 +77,12 @@ cues / ~15k words ≈ 25–30k tokens of model input.
 Videos without a subtitle track get a `meta` line with `"track_type":"none"` and no cues. On the
 10-video spike set, 2 of 10 had no track; coverage is itself a number for the write-up.
 
+`track_type` comes from the player's own label, which yt-dlp exposes as the `ext` of the
+non-manifest subtitle entry: `Ru AUTO` → `auto`, a plain `vtt` → `manual` (uploaded by the
+author, as far as the label tells). On the spike set: 1 auto, 7 manual, 2 none. It is recorded so
+the eval can be sliced by track type; the auto/manual split still needs a check against the player
+on a few videos.
+
 ## Data policy
 
 Raw subtitles are third-party content and stay out of the repo. Gold labels are exported
@@ -86,7 +92,7 @@ anonymised (hashed contributor ids, no account ids). No platform account or cook
 
 | Step | What | State |
 |---|---|---|
-| 1 | `fetch`: subtitles → transcripts, reproducible from one command | in progress |
+| 1 | `fetch`: subtitles → transcripts, reproducible from one command | done |
 | 2 | Gold labels v1, anonymised; eval set v0 of 20 videos | |
 | 3 | Detector v0: one prompt, structured output, cost/latency per call | |
 | 4 | Scorer: IoU matching, precision/recall per category; first number in this README | |
