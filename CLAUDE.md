@@ -7,12 +7,17 @@ the first, `modernc.org/sqlite`, no cgo).
 
 ## Layout
 
-- `cmd/adskip` — the single CLI (`fetch`, `collapse`; later `detect`, `score`).
+- `cmd/adskip` — the single CLI (`fetch`, `collapse`, `import`; later `detect`, `score`).
 - `internal/vtt` — WebVTT parsing and collapsing of rolling captions into plain cues.
 - `internal/transcript` — the JSONL transcript format (meta line + cue lines).
 - `internal/ytdlp` — thin wrapper over the `yt-dlp` binary with retries.
 - `internal/provider` — the only platform-specific code: `Provider` interface (name, video URL,
   subtitle-track pick from yt-dlp output), registry, `platform.go`. New platform = new file + `Register`.
+- `internal/store` — SQLite eval store (`adskip.db` in the data root; `modernc.org/sqlite`, no cgo),
+  schema in `schema.sql`. **Offline evaluation only.** The detector must never import it: in the
+  product the same detector runs against the product database. Only the CLI and the scorer use it.
+- `internal/gold` — reads the product's anonymised gold export (JSONL) into store rows; validates
+  every line and collects rejects instead of stopping at the first.
 - `internal/netguard` — external-IP check; fetch refuses to run from a home IP.
 - `internal/policy` — repo-wide tests; `TestNoVideoIDsInTrackedFiles` fails on any video id in tracked files.
 - `runs/` — eval runs (`<date>-<model>-<prompt-vN>/`): config, prompt, aggregate metrics only.
@@ -23,8 +28,8 @@ the first, `modernc.org/sqlite`, no cgo).
   videos and contributors of the private product. Not even in examples or tests: use placeholder
   ids with a short owner part (`c1_1001`), which the policy test deliberately does not match.
 - Private data root: `-data DIR` / `ADSKIP_DATA`, default `~/Web/data`. Layout:
-  `evalsets/<name>.txt`, `transcripts/<provider>/<id>.{info.json,<lang>.vtt,jsonl}`, later
-  `adskip.db` (SQLite: gold labels, runs, predictions, metrics). Files for blobs, SQLite for what gets joined.
+  `evalsets/<name>.txt`, `transcripts/<provider>/<id>.{info.json,<lang>.vtt,jsonl}`,
+  `adskip.db` (SQLite: gold labels now; runs, predictions, metrics later), `gold-v1.jsonl` (the export). Files for blobs, SQLite for what gets joined.
 - The data root is outside the repo on purpose; `.gitignore` is a second line, the policy test is the first.
 - Home IPs live in `~/.config/ad-skip-segment-eval/home_ips`, outside the repo. Never hard-code an IP.
 - No platform account, no cookies. Fetching goes through a VPN or `--proxy`; the tool fails closed.

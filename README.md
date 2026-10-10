@@ -28,7 +28,7 @@ Every change to the prompt or the model gets a before/after number in `runs/`.
 ```
 native_id list ──fetch──> VTT + info.json (cache) ──collapse──> transcript.jsonl
                                                                     │
-gold labels (data/gold) ─────────────────────────┐                  │ detect (step 3)
+gold export (JSONL) ──import──> adskip.db ───────┐                  │ detect (step 3)
                                                  ▼                  ▼
                                               score  <────── predictions (runs/)
 ```
@@ -51,6 +51,9 @@ YT_DLP=~/Web/tools/ytv/bin/yt-dlp ./adskip fetch -set c2-spike
 
 # Collapse an already downloaded VTT without touching the network.
 ./adskip collapse -id c1_1001
+
+# Load the anonymised gold export into the eval store. Idempotent: a second run inserts nothing.
+./adskip import -file ~/Web/data/gold-v1.jsonl
 ```
 
 All private data lives under the **data root** (`-data DIR`, `ADSKIP_DATA`, default `~/Web/data`),
@@ -62,6 +65,17 @@ never inside the repository:
 | `transcripts/<provider>/<id>.info.json` | raw `yt-dlp -j` metadata (duration, subtitle tracks) |
 | `transcripts/<provider>/<id>.<lang>.vtt` | raw subtitle track as served by the platform |
 | `transcripts/<provider>/<id>.jsonl` | collapsed transcript: one `meta` line, then one `cue` line per phrase |
+| `adskip.db` | SQLite eval store: `videos`, `contributors`, `labels` (schema in `internal/store/schema.sql`); runs and predictions later |
+
+### Gold labels
+
+The product exports its human labels as JSONL, one object per interval exactly as a human made it
+(no merging): `provider, native_id, duration, category, start, end, contributor, is_assessor,
+contributor_rating, contributor_banned, created_at`. Contributor ids are salted hashes.
+`import` validates every line (known category, `start < end`), reports the rejects, and skips an
+interval that is already stored, so the same human re-submitting the same interval counts once.
+The store is for offline evaluation only: the detector never depends on it, so the same detector
+can run inside the product against the product's own database.
 
 ### Network guard
 
@@ -113,7 +127,7 @@ no account ids). No platform account or cookies are used.
 | Step | What | State |
 |---|---|---|
 | 1 | `fetch`: subtitles → transcripts, reproducible from one command | done |
-| 2 | Gold labels v1, anonymised; eval set v0 of 20 videos | |
+| 2 | Gold labels v1, anonymised, in the eval store; held-out list; eval set v0 of 20 videos | import done |
 | 3 | Detector v0: one prompt, structured output, cost/latency per call | |
 | 4 | Scorer: IoU matching, precision/recall per category; first number in this README | |
 | 5 | Harness v1: human–human ceiling, LLM judge on disagreements, regression test, second model | |

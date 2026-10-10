@@ -2,6 +2,7 @@
 //
 //	adskip fetch    -set c2-spike       # subtitles -> transcripts (network, guarded)
 //	adskip collapse -id <native_id>     # cached VTT -> transcript (offline)
+//	adskip import   -file gold-v1.jsonl # gold export -> adskip.db (offline)
 //
 // All private data (eval sets, subtitle cache, transcripts) lives under the data
 // root (-data, default ~/Web/data), outside the repository.
@@ -24,6 +25,8 @@ func main() {
 		err = runFetch(os.Args[2:])
 	case "collapse":
 		err = runCollapse(os.Args[2:])
+	case "import":
+		err = runImport(os.Args[2:])
 	case "-h", "--help", "help":
 		usage()
 		return
@@ -40,7 +43,8 @@ func main() {
 func usage() {
 	fmt.Fprintln(os.Stderr, `usage:
   adskip fetch    [-provider main] [-set NAME] [-ids FILE] [-data DIR] [-lang ru] [-force] [-retries N] [-yt-dlp PATH] [-proxy URL] [id ...]
-  adskip collapse [-provider main] [-data DIR] [-lang ru] -id NATIVE_ID`)
+  adskip collapse [-provider main] [-data DIR] [-lang ru] -id NATIVE_ID
+  adskip import   [-data DIR] -file GOLD_JSONL`)
 }
 
 // defaultDataDir is the private data root: $ADSKIP_DATA or ~/Web/data.
