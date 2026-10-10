@@ -1,7 +1,10 @@
 // Command adskip is the CLI for ad-skip-segment-eval.
 //
-//	adskip fetch    -ids data/evalset/c2-spike.txt   # subtitles -> transcripts (network, guarded)
-//	adskip collapse -id <native_id>                  # cached VTT -> transcript (offline)
+//	adskip fetch    -set c2-spike       # subtitles -> transcripts (network, guarded)
+//	adskip collapse -id <native_id>     # cached VTT -> transcript (offline)
+//
+// All private data (eval sets, subtitle cache, transcripts) lives under the data
+// root (-data, default ~/Web/data), outside the repository.
 package main
 
 import (
@@ -36,8 +39,22 @@ func main() {
 
 func usage() {
 	fmt.Fprintln(os.Stderr, `usage:
-  adskip fetch    [-ids FILE] [-cache DIR] [-lang ru] [-force] [-retries N] [-yt-dlp PATH] [-proxy URL] [id ...]
-  adskip collapse [-cache DIR] [-lang ru] -id NATIVE_ID`)
+  adskip fetch    [-provider main] [-set NAME] [-ids FILE] [-data DIR] [-lang ru] [-force] [-retries N] [-yt-dlp PATH] [-proxy URL] [id ...]
+  adskip collapse [-provider main] [-data DIR] [-lang ru] -id NATIVE_ID`)
+}
+
+// defaultDataDir is the private data root: $ADSKIP_DATA or ~/Web/data.
+func defaultDataDir() string { return envOr("ADSKIP_DATA", home("Web/data")) }
+
+// cacheDir holds info.json, VTT and transcript files for one provider.
+func cacheDir(data, provider string) string { return filepath.Join(data, "transcripts", provider) }
+
+// evalsetPath resolves a set name to <data>/evalsets/<name>.txt; "" stays "".
+func evalsetPath(data, name string) string {
+	if name == "" {
+		return ""
+	}
+	return filepath.Join(data, "evalsets", name+".txt")
 }
 
 func home(rel string) string {

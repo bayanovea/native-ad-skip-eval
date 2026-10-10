@@ -27,7 +27,7 @@ const (
 type Meta struct {
 	Kind      string    `json:"kind"` // always "meta"
 	NativeID  string    `json:"native_id"`
-	Source    string    `json:"source"` // "main"
+	Provider  string    `json:"provider"` // "main", "youtube", "rutube"
 	Title     string    `json:"title,omitempty"`
 	Duration  float64   `json:"duration"` // seconds, from yt-dlp metadata
 	Lang      string    `json:"lang,omitempty"`

@@ -1,5 +1,10 @@
 /bin/
 /adskip
+# private data never lives here (see CLAUDE.md, Data policy); belt and braces
+/data/
 *.vtt
 *.info.json
+*.jsonl
+*.db
+*.txt
 .DS_Store

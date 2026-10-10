@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"ad-skip-segment-eval/internal/provider"
 	"ad-skip-segment-eval/internal/transcript"
 	"ad-skip-segment-eval/internal/vtt"
 )
@@ -17,8 +18,9 @@ import (
 // Duration/title come from a cached info.json when present.
 func runCollapse(args []string) error {
 	fs := flag.NewFlagSet("collapse", flag.ContinueOnError)
+	providerName := fs.String("provider", "main", "video platform")
 	id := fs.String("id", "", "native_id of a video whose VTT is already cached")
-	cache := fs.String("cache", home("Web/data/transcripts"), "cache dir")
+	data := fs.String("data", defaultDataDir(), "private data root")
 	lang := fs.String("lang", "ru", "subtitle language")
 	if err := fs.Parse(args); err != nil {
 		return err
@@ -26,16 +28,20 @@ func runCollapse(args []string) error {
 	if *id == "" {
 		return errors.New("-id is required")
 	}
-	base := filepath.Join(*cache, *id)
+	if _, err := provider.Lookup(*providerName); err != nil {
+		return err
+	}
+	cache := cacheDir(*data, *providerName)
+	base := filepath.Join(cache, *id)
 	vttPath := findVTT(base, *lang)
 	if vttPath == "" {
-		return fmt.Errorf("no %s.%s*.vtt in %s", *id, *lang, *cache)
+		return fmt.Errorf("no %s.%s*.vtt in %s", *id, *lang, cache)
 	}
 	cues, err := collapseFile(vttPath)
 	if err != nil {
 		return err
 	}
-	meta := transcript.Meta{NativeID: *id, Source: "main", Lang: *lang,
+	meta := transcript.Meta{NativeID: *id, Provider: *providerName, Lang: *lang,
 		TrackType: transcript.TrackUnknown, FetchedAt: time.Now().UTC()}
 	if raw, err := os.ReadFile(base + ".info.json"); err == nil {
 		var info struct {

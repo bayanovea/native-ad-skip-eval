@@ -14,15 +14,17 @@ import (
 	"time"
 
 	"ad-skip-segment-eval/internal/netguard"
+	"ad-skip-segment-eval/internal/provider"
 	"ad-skip-segment-eval/internal/transcript"
 	"ad-skip-segment-eval/internal/vtt"
 	"ad-skip-segment-eval/internal/ytdlp"
 )
 
 type fetchOpts struct {
-	cache, lang, homeIPs, bin, proxy string
-	retries                          int
-	force                            bool
+	data, lang, homeIPs, bin, proxy string
+	retries                         int
+	force                           bool
+	provider                        provider.Provider
 }
 
 type result struct {
@@ -36,8 +38,10 @@ type result struct {
 func runFetch(args []string) error {
 	fs := flag.NewFlagSet("fetch", flag.ContinueOnError)
 	var o fetchOpts
+	providerName := fs.String("provider", "main", "video platform: "+strings.Join(provider.Names(), ", "))
+	set := fs.String("set", "", "eval set name: reads <data>/evalsets/<name>.txt")
 	idsFile := fs.String("ids", "", "file with one native_id per line (# comments allowed)")
-	fs.StringVar(&o.cache, "cache", home("Web/data/transcripts"), "cache dir for VTT, info.json and transcripts")
+	fs.StringVar(&o.data, "data", defaultDataDir(), "private data root (eval sets, subtitle cache, transcripts); never inside the repo")
 	fs.StringVar(&o.lang, "lang", "ru", "subtitle language")
 	fs.StringVar(&o.homeIPs, "home-ips", home(".config/ad-skip-segment-eval/home_ips"), "file listing IPs fetch must never run from")
 	fs.StringVar(&o.bin, "yt-dlp", envOr("YT_DLP", "yt-dlp"), "yt-dlp binary")
@@ -47,18 +51,26 @@ func runFetch(args []string) error {
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
+	p, err := provider.Lookup(*providerName)
+	if err != nil {
+		return err
+	}
+	o.provider = p
 	ids := fs.Args()
-	if *idsFile != "" {
-		fromFile, err := readIDs(*idsFile)
+	for _, path := range []string{evalsetPath(o.data, *set), *idsFile} {
+		if path == "" {
+			continue
+		}
+		fromFile, err := readIDs(path)
 		if err != nil {
 			return err
 		}
 		ids = append(ids, fromFile...)
 	}
 	if len(ids) == 0 {
-		return errors.New("no ids: pass -ids FILE or native_ids as arguments")
+		return errors.New("no ids: pass -set NAME, -ids FILE or native_ids as arguments")
 	}
-	if err := os.MkdirAll(o.cache, 0o755); err != nil {
+	if err := os.MkdirAll(cacheDir(o.data, p.Name()), 0o755); err != nil {
 		return err
 	}
 
@@ -113,14 +125,14 @@ type fetcher struct {
 }
 
 func (f *fetcher) paths(id string) (jsonl, info, vttBase string) {
-	d := f.opts.cache
+	d := cacheDir(f.opts.data, f.opts.provider.Name())
 	return filepath.Join(d, id+".jsonl"), filepath.Join(d, id+".info.json"), filepath.Join(d, id)
 }
 
 func (f *fetcher) one(ctx context.Context, id string) result {
 	r := result{id: id}
 	jsonlPath, infoPath, vttBase := f.paths(id)
-	url := "https://example.invalid/video/" + id
+	url := f.opts.provider.VideoURL(id)
 
 	if !f.opts.force {
 		// A transcript built offline by `collapse` has no metadata yet and is completed here.
@@ -157,12 +169,12 @@ func (f *fetcher) one(ctx context.Context, id string) result {
 	}
 
 	meta := transcript.Meta{
-		NativeID: id, Source: "main", Title: info.Title, Duration: info.Duration,
+		NativeID: id, Provider: f.opts.provider.Name(), Title: info.Title, Duration: info.Duration,
 		Lang: f.opts.lang, FetchedAt: time.Now().UTC(),
 	}
 
 	// 2. pick a track: author-uploaded first, auto as fallback
-	track, trackType, auto, ok := pickTrack(info, f.opts.lang)
+	track, trackType, auto, ok := f.opts.provider.PickTrack(info, f.opts.lang)
 	if !ok {
 		meta.TrackType = transcript.TrackNone
 		if err := transcript.WriteFile(jsonlPath, meta, nil); err != nil {
@@ -217,42 +229,6 @@ func (f *fetcher) guard(ctx context.Context) error {
 func failed(r result, err error) result {
 	r.status, r.err = "failed", err
 	return r
-}
-
-// pickTrack decides which subtitle track to download for lang and what type it is.
-// Type comes from the player-labelled entry (no manifest_url): a label containing
-// "auto" means auto-subtitles. A plain "vtt" label is NOT evidence of an uploaded
-// track: a video labelled "Автоматические" in the player showed up as "vtt" too
-// (checked 2026-10-10), so anything else stays unknown. The entry from the stream
-// manifest carries no label, so it is never used for typing.
-// Returns auto=true only when the track lives under automatic_captions, which
-// selects --write-auto-subs.
-func pickTrack(info *ytdlp.Info, lang string) (t ytdlp.Track, typ transcript.TrackType, auto bool, ok bool) {
-	subs := info.Subtitles[lang]
-	if len(subs) > 0 {
-		typ = transcript.TrackUnknown
-		t = subs[0]
-		for _, tr := range subs {
-			if tr.ManifestURL != "" {
-				continue // manifest-derived entry: format only, no label
-			}
-			t = tr
-			if looksAuto(tr) {
-				typ = transcript.TrackAuto
-			}
-			break
-		}
-		return t, typ, false, true
-	}
-	if trs := info.AutomaticCaptions[lang]; len(trs) > 0 {
-		return trs[0], transcript.TrackAuto, true, true
-	}
-	return ytdlp.Track{}, transcript.TrackNone, false, false
-}
-
-func looksAuto(t ytdlp.Track) bool {
-	s := strings.ToLower(t.Name + " " + t.Ext)
-	return strings.Contains(s, "auto") || strings.Contains(s, "автомат")
 }
 
 // findVTT returns the first "<base>.<lang>*.vtt" (yt-dlp may add a track suffix).

@@ -1,14 +1,16 @@
 # ad-skip-segment-eval
 
 Can an LLM find sponsor segments in long Russian-language videos from the auto-generated
-subtitles alone, and how close does it get to crowdsourced human labels?
+subtitles alone, and how close does it get to crowdsourced human labels? One platform first; the
+fetch layer is per provider, everything after it is not.
 
 This repository is the public, measurable half of a private product: a browser extension and API
 where viewers mark ad segments (sponsor, intro, self-promotion, credits) and others skip them.
 Here lives the **detector**, the **eval harness** that scores it against human labels, the
-**anonymised dataset**, and the write-up. Written in Go.
+prompts, the aggregate numbers, and the write-up. Written in Go. The dataset itself (video ids,
+labels, transcripts, per-video predictions) stays private; see Data policy.
 
-**Status (2026-10-10):** step 1 of 6 done — the 10-video spike set fetches and collapses from one command (8 transcripts, 2 videos without subtitles). No model calls yet, no numbers yet.
+**Status (2026-10-10):** step 1 of 6 done — the 10-video spike set fetches and collapses from one command (8 transcripts, 2 videos without subtitles); provider layer and data policy in place. No model calls yet, no numbers yet.
 
 ## Why this exists
 
@@ -39,21 +41,27 @@ Requirements: Go 1.27+, [`yt-dlp`](https://github.com/yt-dlp/yt-dlp) on `PATH`, 
 ```sh
 go build -o adskip ./cmd/adskip
 
-# Fetch and collapse subtitles for every id in the list. Cached videos are skipped;
+# Fetch and collapse subtitles for every id in an eval set. Cached videos are skipped;
 # rerunning after a partial failure retries only what is missing.
-YT_DLP=~/Web/tools/ytv/bin/yt-dlp ./adskip fetch -ids data/evalset/c2-spike.txt
+YT_DLP=~/Web/tools/ytv/bin/yt-dlp ./adskip fetch -set c2-spike
+
+# Same, from an explicit list or ids on the command line.
+./adskip fetch -provider main -ids /path/ids.txt
+./adskip fetch c1_1001
 
 # Collapse an already downloaded VTT without touching the network.
 ./adskip collapse -id c1_1001
 ```
 
-`fetch` writes to `~/Web/data/transcripts/` (override with `-cache`):
+All private data lives under the **data root** (`-data DIR`, `ADSKIP_DATA`, default `~/Web/data`),
+never inside the repository:
 
-| File | Content |
+| Path | Content |
 |---|---|
-| `<id>.info.json` | raw `yt-dlp -j` metadata (duration, subtitle tracks) |
-| `<id>.<lang>.vtt` | raw subtitle track as served by the platform |
-| `<id>.jsonl` | collapsed transcript: one `meta` line, then one `cue` line per phrase |
+| `evalsets/<name>.txt` | one `native_id` per line, `#` comments allowed; `-set <name>` |
+| `transcripts/<provider>/<id>.info.json` | raw `yt-dlp -j` metadata (duration, subtitle tracks) |
+| `transcripts/<provider>/<id>.<lang>.vtt` | raw subtitle track as served by the platform |
+| `transcripts/<provider>/<id>.jsonl` | collapsed transcript: one `meta` line, then one `cue` line per phrase |
 
 ### Network guard
 
@@ -65,7 +73,7 @@ safe path the only path. Cached videos never trigger the guard.
 ### Transcript format
 
 ```jsonl
-{"kind":"meta","native_id":"c1_1001","source":"main","duration":2311.0,"lang":"ru","track_type":"auto","track_name":"Русский (Автоматические)","cues":1480,"words":15012,"fetched_at":"2026-10-12T10:00:00Z"}
+{"kind":"meta","native_id":"c1_1001","provider":"main","duration":2311.0,"lang":"ru","track_type":"auto","track_name":"Русский (Автоматические)","cues":1480,"words":15012,"fetched_at":"2026-10-12T10:00:00Z"}
 {"kind":"cue","start":46.86,"end":48.27,"text":"всем привет, всем, привет,"}
 ```
 
@@ -83,10 +91,22 @@ uploaded track: a video the player marks as auto-generated came through as `vtt`
 those stay `unknown`. On the spike set: 1 auto, 7 unknown, 2 none. Recorded so the eval can be
 sliced by track type once a reliable manual/auto signal exists.
 
+## Providers
+
+A provider is the only platform-specific piece: a URL scheme plus the rule for reading the
+platform's subtitle listing out of `yt-dlp -j` (`internal/provider`). Every transcript, label and
+prediction is keyed by `(provider, native_id)`. Implemented: `main`. Planned: `youtube`, `rutube`,
+once there are human labels for them; the product's backend already has their tables.
+
 ## Data policy
 
-Raw subtitles are third-party content and stay out of the repo. Gold labels are exported
-anonymised (hashed contributor ids, no account ids). No platform account or cookies are used.
+**Nothing that identifies a video or a contributor enters this repository**: no video ids, no
+labels, no transcripts, no per-video predictions. They live under the data root (files for
+subtitles and transcripts, SQLite for labels and runs). What is committed: code, prompts, eval
+configs and aggregate metrics per run. A test (`internal/policy`) scans every tracked file for
+video ids and fails the build on a hit; `.gitignore` is only the second line of defence.
+Raw subtitles are third-party content. Labels are exported anonymised (hashed contributor ids,
+no account ids). No platform account or cookies are used.
 
 ## Roadmap
 

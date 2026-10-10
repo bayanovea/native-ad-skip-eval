@@ -1,4 +1,4 @@
-package main
+package provider
 
 import (
 	"testing"
@@ -24,9 +24,22 @@ func TestPickTrackShapes(t *testing.T) {
 	}
 	for _, c := range cases {
 		info := &ytdlp.Info{Subtitles: map[string][]ytdlp.Track{"ru": c.subs}, AutomaticCaptions: c.auto}
-		_, typ, _, ok := pickTrack(info, "ru")
+		_, typ, _, ok := platform{}.PickTrack(info, "ru")
 		if typ != c.want || ok != c.ok {
 			t.Errorf("%s: got %s/%v want %s/%v", c.name, typ, ok, c.want, c.ok)
 		}
+	}
+}
+
+func TestRegistry(t *testing.T) {
+	p, err := Lookup("main")
+	if err != nil || p.Name() != "main" {
+		t.Fatalf("main not registered: %v", err)
+	}
+	if p.VideoURL("c1_2") != "https://example.invalid/video/c1_2" {
+		t.Errorf("url: %s", p.VideoURL("c1_2"))
+	}
+	if _, err := Lookup("nope"); err == nil {
+		t.Error("unknown provider must fail")
 	}
 }
