@@ -7,7 +7,7 @@ the first, `modernc.org/sqlite`, no cgo).
 
 ## Layout
 
-- `cmd/adskip` — the single CLI (`fetch`, `collapse`, `import`; later `detect`, `score`).
+- `cmd/adskip` — the single CLI (`fetch`, `collapse`, `import`, `evalset`; later `detect`, `score`).
 - `internal/vtt` — WebVTT parsing and collapsing of rolling captions into plain cues.
 - `internal/transcript` — the JSONL transcript format (meta line + cue lines).
 - `internal/ytdlp` — thin wrapper over the `yt-dlp` binary with retries.
@@ -33,6 +33,14 @@ the first, `modernc.org/sqlite`, no cgo).
 - The data root is outside the repo on purpose; `.gitignore` is a second line, the policy test is the first.
 - Home IPs live in `~/.config/ad-skip-segment-eval/home_ips`, outside the repo. Never hard-code an IP.
 - No platform account, no cookies. Fetching goes through a VPN or `--proxy`; the tool fails closed.
+
+## Eval sets
+
+- `heldout` = assessor videos in hash bucket 0 of 5 (`store.Bucket`). Frozen before the first
+  prompt run. Never read its transcripts or labels while iterating on prompts; score it once per
+  milestone. `dev`/`v0` selection always excludes it.
+- Selection is deterministic (hash order, no seed) so every set is reproducible from the store.
+- `c2-spike` is hand-picked (used to debug fetch) and serves as the smoke set; it is excluded from `v0`.
 
 ## Providers
 
