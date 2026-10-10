@@ -136,7 +136,7 @@ func (f *fetcher) one(ctx context.Context, id string) result {
 
 	if !f.opts.force {
 		// A transcript built offline by `collapse` has no metadata yet and is completed here.
-		if m, cues, err := readTranscript(jsonlPath); err == nil && m.TrackType != transcript.TrackUnknown {
+		if m, cues, err := readTranscript(jsonlPath); err == nil && m.TrackType != transcript.TrackUntyped {
 			r.status, r.cues, r.words = "cached", len(cues), m.Words
 			if m.TrackType == transcript.TrackNone {
 				r.status = "no-subs"

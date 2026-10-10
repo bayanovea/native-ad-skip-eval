@@ -42,7 +42,7 @@ func runCollapse(args []string) error {
 		return err
 	}
 	meta := transcript.Meta{NativeID: *id, Provider: *providerName, Lang: *lang,
-		TrackType: transcript.TrackUnknown, FetchedAt: time.Now().UTC()}
+		TrackType: transcript.TrackUntyped, FetchedAt: time.Now().UTC()}
 	if raw, err := os.ReadFile(base + ".info.json"); err == nil {
 		var info struct {
 			Title    string  `json:"title"`
