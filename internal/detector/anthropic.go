@@ -2,41 +2,101 @@ package detector
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
+	"fmt"
+	"strings"
+	"time"
+
+	"github.com/anthropics/anthropic-sdk-go"
 )
 
-// Anthropic is the Client over the Claude API (Go SDK). Structured output:
-// the response format is the JSON schema in Request.Schema, so the response
-// is one JSON content block that ParseOutput decodes.
+// Anthropic is the Client over the Claude API (Go SDK).
 //
-// TODO(step 3, owner: user): implement with github.com/anthropics/anthropic-sdk-go.
-//   - client: anthropic.NewClient() picks up ANTHROPIC_API_KEY or the `ant auth login` profile.
-//   - request: Model, MaxTokens (small, ~2k: the output is a short JSON), System = req.System,
-//     one user message = req.User, OutputConfig with Effort and the JSON-schema format.
-//     Docs: https://platform.claude.com/docs/en/build-with-claude/structured-outputs.md
-//     SDK:  https://github.com/anthropics/anthropic-sdk-go
-//   - response: concatenate text blocks -> Raw; ParseOutput(Raw); Usage from response.Usage
-//     (input, output, cache_read_input_tokens, cache_creation_input_tokens); Latency = wall clock
-//     around the call; check StopReason before trusting the content (max_tokens, refusal).
-//   - errors: typed SDK errors; 429/5xx are retried by the SDK (max_retries 2), do not wrap a loop
-//     around it blindly. A refusal is an error for this video, not a crash of the run.
+// One request per transcript: the prompt as the system text, the rendered
+// cues as the only user message, the JSON schema as the response format
+// (structured output), so the reply is one text block of schema-valid JSON.
+//
+// Deliberately not used: prompt caching (the prompt is below the cacheable
+// minimum and nothing else repeats between calls), streaming (the output is
+// a few hundred tokens), server-side model fallbacks (a fallback would run a
+// different model under this run's name and corrupt the comparison).
 type Anthropic struct {
+	client anthropic.Client
 	model  string
 	effort string
 }
 
-// NewAnthropic builds a client for one model and effort level.
+// NewAnthropic builds a client for one model and effort level. Credentials
+// come from the environment: ANTHROPIC_API_KEY or the `ant auth login` profile.
 func NewAnthropic(model, effort string) (*Anthropic, error) {
 	if model == "" {
 		return nil, errors.New("model is required")
 	}
-	return &Anthropic{model: model, effort: effort}, nil
+	return &Anthropic{client: anthropic.NewClient(), model: model, effort: effort}, nil
 }
 
 // Model implements Client.
 func (a *Anthropic) Model() string { return a.model }
 
+// maxTokens bounds the reply. The JSON is small, but on models with adaptive
+// thinking the thinking tokens count against this limit too, so it is not
+// set to the size of the JSON alone.
+const maxTokens = 8192
+
 // Detect implements Client.
 func (a *Anthropic) Detect(ctx context.Context, req Request) (Result, error) {
-	return Result{}, errors.New("detector: Anthropic client not implemented yet (step 3 homework)")
+	var schema map[string]any
+	if err := json.Unmarshal([]byte(req.Schema), &schema); err != nil {
+		return Result{}, fmt.Errorf("schema: %w", err)
+	}
+	params := anthropic.MessageNewParams{
+		Model:     a.model,
+		MaxTokens: maxTokens,
+		System:    []anthropic.TextBlockParam{{Text: req.System}},
+		Messages:  []anthropic.MessageParam{anthropic.NewUserMessage(anthropic.NewTextBlock(req.User))},
+		OutputConfig: anthropic.OutputConfigParam{
+			Format: anthropic.JSONOutputFormatParam{Schema: schema},
+		},
+	}
+	// Effort exists on the current Opus/Sonnet generation only; Haiku 4.5 rejects it.
+	if a.effort != "" && !strings.Contains(a.model, "haiku") {
+		params.OutputConfig.Effort = anthropic.OutputConfigEffort(a.effort)
+	}
+
+	start := time.Now()
+	msg, err := a.client.Messages.New(ctx, params)
+	res := Result{Latency: time.Since(start)}
+	if err != nil {
+		return res, err // the SDK error text carries the HTTP status; detect.go reads it
+	}
+	res.Usage = Usage{
+		InputTokens:      int(msg.Usage.InputTokens),
+		OutputTokens:     int(msg.Usage.OutputTokens),
+		CacheReadTokens:  int(msg.Usage.CacheReadInputTokens),
+		CacheWriteTokens: int(msg.Usage.CacheCreationInputTokens),
+	}
+	var text strings.Builder
+	for _, block := range msg.Content {
+		if t, ok := block.AsAny().(anthropic.TextBlock); ok {
+			text.WriteString(t.Text)
+		}
+	}
+	res.Raw = text.String()
+
+	// The schema guarantees the shape only when the model finished its turn.
+	// A cut-off (max_tokens) or a refusal is a failed call for this video.
+	switch msg.StopReason {
+	case anthropic.StopReasonEndTurn, anthropic.StopReasonStopSequence:
+	case anthropic.StopReasonMaxTokens:
+		return res, fmt.Errorf("stop_reason max_tokens: output cut off at %d tokens", maxTokens)
+	default:
+		return res, fmt.Errorf("stop_reason %s", msg.StopReason)
+	}
+	out, err := ParseOutput(res.Raw)
+	if err != nil {
+		return res, err
+	}
+	res.Output = out
+	return res, nil
 }
