@@ -1,28 +1,31 @@
 {
-  "videos": 1,
+  "videos": 20,
   "status": {
-    "ok": 1
+    "invalid_output": 6,
+    "no_transcript": 2,
+    "ok": 12
   },
   "segments_by_category": {
-    "self_promotion": 1,
-    "sponsor": 2
+    "self_promotion": 16,
+    "sponsor": 12
   },
   "segments_by_confidence": {
-    "high": 3
+    "high": 26,
+    "medium": 2
   },
-  "segments_quote_mismatch": 1,
-  "videos_with_segments": 1,
+  "segments_quote_mismatch": 20,
+  "videos_with_segments": 10,
   "tokens": {
-    "Input": 42642,
-    "Output": 170,
+    "Input": 684778,
+    "Output": 3789,
     "CacheRead": 0,
     "CacheWrite": 0
   },
-  "cost_usd": 0.043491999999999996,
-  "cost_usd_per_ok_video": 0.043491999999999996,
+  "cost_usd": 0.7037229999999999,
+  "cost_usd_per_ok_video": 0.058643583333333325,
   "latency_ms": {
-    "P50": 5499,
-    "P95": 5499,
-    "Max": 5499
+    "P50": 3138,
+    "P95": 6443,
+    "Max": 6443
   }
 }
