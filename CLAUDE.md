@@ -7,7 +7,7 @@ the first, `modernc.org/sqlite`, no cgo).
 
 ## Layout
 
-- `cmd/adskip` — the single CLI (`fetch`, `collapse`, `import`, `evalset`; later `detect`, `score`).
+- `cmd/adskip` — the single CLI (`fetch`, `collapse`, `import`, `evalset`, `detect`; later `score`).
 - `internal/vtt` — WebVTT parsing and collapsing of rolling captions into plain cues.
 - `internal/transcript` — the JSONL transcript format (meta line + cue lines).
 - `internal/ytdlp` — thin wrapper over the `yt-dlp` binary with retries.
@@ -18,9 +18,19 @@ the first, `modernc.org/sqlite`, no cgo).
   product the same detector runs against the product database. Only the CLI and the scorer use it.
 - `internal/gold` — reads the product's anonymised gold export (JSONL) into store rows; validates
   every line and collects rejects instead of stopping at the first.
+- `internal/detector` — the detector: prompt loading, transcript rendering (numbered cues), the
+  output schema, validation (cue indices, no overlaps) and the `Client` interface. **Runs inside
+  the product later, so it imports only `transcript`/`vtt`.** `anthropic.go` is the Claude API
+  client (Go SDK, structured output via JSON schema). The model returns cue indices, never
+  timestamps; `Resolve` maps them to seconds.
+- `prompts/vN.md` — versioned prompts; the file name is the version, the sha256 is in each run's config.
 - `internal/netguard` — external-IP check; fetch refuses to run from a home IP.
 - `internal/policy` — repo-wide tests; `TestNoVideoIDsInTrackedFiles` fails on any video id in tracked files.
-- `runs/` — eval runs (`<date>-<model>-<prompt-vN>/`): config, prompt, aggregate metrics only.
+- `runs/` — eval runs (`<date>-<model>-<prompt-vN>/`): `config.json` (model, effort, prompt sha,
+  prices used), `prompt.md`, `metrics.json` (aggregates). Per-video calls and predictions go to
+  `adskip.db` (`runs`, `calls`, `predictions`). Predictions are stored raw; min-duration and
+  confidence thresholds are applied by the scorer, so one paid run is scored under many settings.
+  A run resumes: `ok`/`no_transcript` videos are skipped, failed ones retried; `-force` restarts.
 
 ## Data policy (decided 2026-10-10)
 

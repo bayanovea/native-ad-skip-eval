@@ -10,7 +10,7 @@ Here lives the **detector**, the **eval harness** that scores it against human l
 prompts, the aggregate numbers, and the write-up. Written in Go. The dataset itself (video ids,
 labels, transcripts, per-video predictions) stays private; see Data policy.
 
-**Status (2026-10-10):** step 1 of 6 done — the 10-video spike set fetches and collapses from one command (8 transcripts, 2 videos without subtitles); provider layer and data policy in place. No model calls yet, no numbers yet.
+**Status (2026-10-11):** steps 1–2 done (fetch, gold labels in the eval store, held-out list, eval set v0 of 20 videos); step 3 in progress — prompt v1, output schema, run bookkeeping and `detect` command exist, the API client is being written. No numbers yet.
 
 ## Why this exists
 
@@ -58,7 +58,25 @@ YT_DLP=~/Web/tools/ytv/bin/yt-dlp ./adskip fetch -set c2-spike
 # Eval-set files from the store (deterministic, no seed file).
 ./adskip evalset heldout   # 20% of assessor videos by hash bucket; never looked at during prompt work
 ./adskip evalset v0        # 10 assessor + 10 multi-contributor videos, not held out, not in c2-spike
+
+# Run the detector over an eval set (paid model calls; `ant auth login` or ANTHROPIC_API_KEY).
+./adskip detect -set v0 -dry-run                       # sizes and a cost estimate, no calls
+./adskip detect -set v0 -model claude-opus-5-5 -effort medium
 ```
+
+### Detector
+
+One model call per video: the prompt (`prompts/v1.md`) as the system text, the transcript as
+numbered cues (`[12] 549.4-551.4: text`) in the user message, and a JSON schema as the response
+format. The model returns **cue indices, not timestamps** (`first_cue`, `last_cue`, `category`,
+`confidence`, `quote`); the code maps indices to seconds and rejects outputs with an index
+outside the transcript, a reversed or an overlapping segment. Two consequences, both on purpose:
+a segment can only start and end where the transcript has text (boundaries land inside the
+human ones, which the scorer measures), and the model cannot invent a number.
+
+`confidence` is `high | medium | low`, a ranking signal and not a probability; the scorer reports
+precision per level so a threshold can be chosen from data. v0 detects `sponsor` and
+`self_promotion` only; `intro` and `credits` have no transcript signal.
 
 All private data lives under the **data root** (`-data DIR`, `ADSKIP_DATA`, default `~/Web/data`),
 never inside the repository:
@@ -69,7 +87,7 @@ never inside the repository:
 | `transcripts/<provider>/<id>.info.json` | raw `yt-dlp -j` metadata (duration, subtitle tracks) |
 | `transcripts/<provider>/<id>.<lang>.vtt` | raw subtitle track as served by the platform |
 | `transcripts/<provider>/<id>.jsonl` | collapsed transcript: one `meta` line, then one `cue` line per phrase |
-| `adskip.db` | SQLite eval store: `videos`, `contributors`, `labels` (schema in `internal/store/schema.sql`); runs and predictions later |
+| `adskip.db` | SQLite eval store: `videos`, `contributors`, `labels`, `runs`, `calls`, `predictions` (schema in `internal/store/schema.sql`) |
 
 ### Gold labels
 
@@ -135,7 +153,7 @@ no account ids). No platform account or cookies are used.
 |---|---|---|
 | 1 | `fetch`: subtitles → transcripts, reproducible from one command | done |
 | 2 | Gold labels v1, anonymised, in the eval store; held-out list; eval set v0 of 20 videos | done |
-| 3 | Detector v0: one prompt, structured output, cost/latency per call | |
+| 3 | Detector v0: one prompt, structured output, cost/latency per call | in progress |
 | 4 | Scorer: IoU matching, precision/recall per category; first number in this README | |
 | 5 | Harness v1: human–human ceiling, LLM judge on disagreements, regression test, second model | |
 
