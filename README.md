@@ -10,7 +10,7 @@ Here lives the **detector**, the **eval harness** that scores it against human l
 prompts, the aggregate numbers, and the write-up. Written in Go. The dataset itself (video ids,
 labels, transcripts, per-video predictions) stays private; see Data policy.
 
-**Status (2026-10-11):** steps 1–2 done (fetch, gold labels in the eval store, held-out list, eval set v0 of 20 videos); step 3 in progress — prompt v1, output schema, run bookkeeping and `detect` command exist, the API client is being written. No numbers yet.
+**Status (2026-10-12):** steps 1–4 done. Prompt v1 ran on the 18-video `v0` set with three Claude models; the scorer gives the first numbers below. Next: the human–human ceiling and a blind review (step 5), then prompt v2.
 
 ## Why this exists
 
@@ -23,14 +23,58 @@ video. The open questions are engineering questions, not research ones:
 
 Every change to the prompt or the model gets a before/after number in `runs/`.
 
+## Results so far
+
+Eval set `v0`: 20 videos (10 labelled by assessors, 10 by several ordinary contributors), 18 with
+subtitles, 2.5 h to 1.9 h long, 39 human sponsor and 13 self-promotion intervals. Prompt `v1`,
+one call per video, scored at **IoU ≥ 0.3** after dropping predictions under 5 s. "Raw gold" is the
+human labels as exported. "Reviewed gold" is the same labels after one person checked every
+disagreement of the Opus run (23 items: 11 ads the humans had not labelled, 4 labels that were not
+ads, 3 genuinely unclear, 5 where the model was wrong) — see *Scorer* for how verdicts are applied.
+
+| Model | Valid outputs | $ / video | p50 latency | Gold | sponsor P / R | self_promotion P / R | any ad P / R |
+|---|---|---|---|---|---|---|---|
+| Opus 5.5 | 18 / 18 | 0.16 | 7.5 s | raw | 0.92 / 0.70 | 0.32 / 0.70 | 0.66 / 0.76 |
+| | | | | reviewed | 0.96 / 0.83 | 0.75 / 0.79 | 0.87 / 0.85 |
+| Sonnet 5.5 | 17 / 18 | 0.08 | 2.8 s | raw | 0.73 / 0.63 | 0.25 / 0.71 | 0.54 / 0.69 |
+| | | | | reviewed | 0.77 / 0.77 | 0.72 / 0.81 | 0.75 / 0.81 |
+| Haiku 4.5 | 12 / 18 | 0.04 | — | raw | 0.82 / 0.50 | 0.25 / 0.67 | 0.48 / 0.56 |
+| | | | | reviewed | 0.82 / 0.64 | 0.47 / 0.70 | 0.61 / 0.70 |
+
+"Any ad" collapses the categories and merges adjacent segments: what a skip button sees. Haiku
+is scored on the 12 videos where its output passed validation (it invented cue indices or
+overlapping segments on the other 6). Keeping only `confidence = high` lifts Opus "any ad"
+precision to 0.94 (reviewed) at recall 0.65; for sponsor the level carries almost no
+information (22 of 24 hits are already `high`).
+
+What the first error analysis changed:
+
+- **The raw labels understate the model on self-promotion.** 10 of the 13 Opus self-promotion
+  predictions without a human label were real promotion the humans had skipped; none were
+  hallucinated. The raw number is a floor, not a measurement.
+- **Most "missed" sponsors were not the model's.** Of 10 human sponsor labels the model did not
+  hit: 4 were not ads (show intros, a song), 2 were category disputes (a studio presenting its own
+  client work: human said sponsor, model said self-promotion), 1 unclear, 1 visual-only with no
+  speech, 2 real misses of short mentions (4 s and 8 s).
+- **Boundaries sit inside the human ones by construction.** Start median +3.6 s later, end median
+  −3.9 s earlier than humans; about two thirds of starts and half of ends are within 5 s. The tail
+  (p90 15–40 s) is a few long blocks where the model took one part. Subtitle timing itself drifts
+  by ~10 s late in one 1.9 h video, which caps what any text-based boundary can do.
+- **Caveat on "reviewed":** the review sheet was built from the Opus run's disagreements, so its
+  predictions became gold where the reviewer agreed; the reviewed row favours Opus. A review
+  built from the union of all runs, blind to the source, is step 5.
+
+Per-run aggregates: `runs/<run>/metrics.json` (cost, latency, validity) and
+`runs/<run>/score-<settings>.json` (matching, per-confidence precision, boundary quantiles).
+
 ## Pipeline
 
 ```
 native_id list ──fetch──> VTT + info.json (cache) ──collapse──> transcript.jsonl
                                                                     │
-gold export (JSONL) ──import──> adskip.db ───────┐                  │ detect (step 3)
+gold export (JSONL) ──import──> adskip.db ───────┐                  │ detect
                                                  ▼                  ▼
-                                              score  <────── predictions (runs/)
+eye-check verdicts (TSV) ──review──>          score  <────── predictions (adskip.db, runs/)
 ```
 
 ## Usage
@@ -62,7 +106,34 @@ YT_DLP=~/Web/tools/ytv/bin/yt-dlp ./adskip fetch -set c2-spike
 # Run the detector over an eval set (paid model calls; `ant auth login` or ANTHROPIC_API_KEY).
 ./adskip detect -set v0 -dry-run                       # sizes and a cost estimate, no calls
 ./adskip detect -set v0 -model claude-opus-5-5 -effort medium
+
+# Score a run against the human labels (offline). Thresholds are flags; predictions are stored raw.
+./adskip score -run 2026-10-11-claude-opus-5-5-v1 -iou 0.3 -min-seconds 5
+./adskip score -run 2026-10-11-claude-opus-5-5-v1 -iou 0.3 -gold reviewed -min-confidence high -list
+
+# Load an eye-check sheet's verdicts (private TSV) so `-gold reviewed` can apply them.
+./adskip review -file ~/Web/data/review/2026-10-11-opus-v1.tsv -run 2026-10-11-claude-opus-5-5-v1 -date 2026-10-12
 ```
+
+### Scorer
+
+Human labels of one video and category are merged across contributors (union of overlapping
+intervals). Predictions are filtered (`-min-seconds`, `-min-confidence`), then matched one-to-one
+with merged gold of the same category, greedily by intersection-over-union, a hit at
+`IoU ≥ -iou`. Precision, recall and F1 per category and for `any_ad` (categories collapsed,
+adjacent segments merged on both sides), precision per confidence level, and the boundary error of
+matched pairs (prediction minus gold, median and p50/p90 of the absolute value, share within
+2 / 5 / 10 s). Aggregates go to `runs/<run>/score-<settings>.json`; `-list` prints the false
+positives and misses with video ids to stdout only.
+
+IoU 0.3 is deliberately loose: a text-based boundary is always inside the audio-based human one
+(the jingle before the ad has no subtitles), so a stricter IoU would punish a correct detection
+for a boundary offset. Boundary quality is reported separately instead of folded into the hit rule.
+
+`-gold reviewed` applies eye-check verdicts stored in `gold_reviews` on top of the raw labels,
+which are never edited: `gold_missing` adds an interval, `gold_wrong` removes the overlapping
+labels, `definition_unclear` excludes the region from both sides, `model_wrong` and `gold_valid`
+change nothing. Each verdict records the reviewer, the date and the run the sheet was built from.
 
 ### Detector
 
@@ -153,8 +224,8 @@ no account ids). No platform account or cookies are used.
 |---|---|---|
 | 1 | `fetch`: subtitles → transcripts, reproducible from one command | done |
 | 2 | Gold labels v1, anonymised, in the eval store; held-out list; eval set v0 of 20 videos | done |
-| 3 | Detector v0: one prompt, structured output, cost/latency per call | in progress |
-| 4 | Scorer: IoU matching, precision/recall per category; first number in this README | |
+| 3 | Detector v0: one prompt, structured output, cost/latency per call | done |
+| 4 | Scorer: IoU matching, precision/recall per category; first number in this README | done |
 | 5 | Harness v1: human–human ceiling, LLM judge on disagreements, regression test, second model | |
 
 ## License

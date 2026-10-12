@@ -1,0 +1,130 @@
+{
+  "run": "2026-10-11-claude-sonnet-5-5-v1",
+  "settings": {
+    "min_seconds": 5,
+    "min_confidence": "high",
+    "iou": 0.3,
+    "gold": "reviewed"
+  },
+  "videos_scored": 17,
+  "predictions_total": 46,
+  "predictions_scored": 29,
+  "reviews_applied": 22,
+  "gold_segments_merged": {
+    "self_promotion": 16,
+    "sponsor": 26
+  },
+  "categories": {
+    "any_ad": {
+      "TP": 24,
+      "FP": 5,
+      "FN": 17,
+      "precision": 0.828,
+      "recall": 0.585,
+      "f1": 0.686,
+      "by_confidence": {
+        "high": {
+          "TP": 24,
+          "FP": 5,
+          "precision": 0.828
+        }
+      },
+      "start_error": {
+        "n": 24,
+        "median_signed_s": 2.4,
+        "abs_p50_s": 3.2,
+        "abs_p90_s": 45.4,
+        "within_tolerance": {
+          "10s": 0.667,
+          "2s": 0.333,
+          "5s": 0.667
+        }
+      },
+      "end_error": {
+        "n": 24,
+        "median_signed_s": -2.2,
+        "abs_p50_s": 3.6,
+        "abs_p90_s": 16.9,
+        "within_tolerance": {
+          "10s": 0.792,
+          "2s": 0.208,
+          "5s": 0.667
+        }
+      }
+    },
+    "self_promotion": {
+      "TP": 6,
+      "FP": 0,
+      "FN": 10,
+      "precision": 1,
+      "recall": 0.375,
+      "f1": 0.545,
+      "by_confidence": {
+        "high": {
+          "TP": 6,
+          "FP": 0,
+          "precision": 1
+        }
+      },
+      "start_error": {
+        "n": 6,
+        "median_signed_s": -1.3,
+        "abs_p50_s": 1.3,
+        "abs_p90_s": 15.3,
+        "within_tolerance": {
+          "10s": 0.833,
+          "2s": 0.5,
+          "5s": 0.833
+        }
+      },
+      "end_error": {
+        "n": 6,
+        "median_signed_s": -1.4,
+        "abs_p50_s": 2.2,
+        "abs_p90_s": 4.5,
+        "within_tolerance": {
+          "10s": 1,
+          "2s": 0.333,
+          "5s": 1
+        }
+      }
+    },
+    "sponsor": {
+      "TP": 17,
+      "FP": 6,
+      "FN": 9,
+      "precision": 0.739,
+      "recall": 0.654,
+      "f1": 0.694,
+      "by_confidence": {
+        "high": {
+          "TP": 17,
+          "FP": 6,
+          "precision": 0.739
+        }
+      },
+      "start_error": {
+        "n": 17,
+        "median_signed_s": 3.6,
+        "abs_p50_s": 3.6,
+        "abs_p90_s": 52.8,
+        "within_tolerance": {
+          "10s": 0.588,
+          "2s": 0.235,
+          "5s": 0.588
+        }
+      },
+      "end_error": {
+        "n": 17,
+        "median_signed_s": -2.4,
+        "abs_p50_s": 4,
+        "abs_p90_s": 25.4,
+        "within_tolerance": {
+          "10s": 0.706,
+          "2s": 0.176,
+          "5s": 0.529
+        }
+      }
+    }
+  }
+}
