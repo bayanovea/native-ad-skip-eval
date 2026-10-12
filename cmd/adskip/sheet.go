@@ -35,6 +35,7 @@ func runSheet(args []string) error {
 	runsFlag := fs.String("runs", "", "comma-separated run ids (required)")
 	out := fs.String("out", "", "output .md path, outside the repo (required)")
 	minSec := fs.Float64("min-seconds", 5, "ignore predictions shorter than this")
+	conflicts := fs.Bool("conflicts", false, "category-conflict sheet: stretches where a run's category differs from the human one (instead of uncovered stretches)")
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
@@ -70,8 +71,9 @@ func runSheet(args []string) error {
 		}
 		for _, p := range ps {
 			if ok[p.NativeID] && p.End-p.Start >= *minSec {
-				off := offsets[p.Provider+":"+p.NativeID]
-				byVideo[p.NativeID] = append(byVideo[p.NativeID], flag1{r, p.Category, span{p.Start - off, p.End - off}})
+				if a, b, ok := shiftToPlayer(p.Start, p.End, offsets[p.Provider+":"+p.NativeID]); ok {
+					byVideo[p.NativeID] = append(byVideo[p.NativeID], flag1{r, p.Category, span{a, b}})
+				}
 			}
 		}
 	}
@@ -85,6 +87,7 @@ func runSheet(args []string) error {
 		start, end float64
 		cats       map[string]bool
 		runs       map[string]bool
+		gold       map[string]bool // conflicts mode: the categories the humans used here
 	}
 	var items []item
 	for id, fl := range byVideo {
@@ -111,10 +114,35 @@ func runSheet(args []string) error {
 		covered = mergeSpans(covered)
 
 		// Keep flags that are less than half covered, then cluster what is left.
+		goldBy := map[string][]span{}
+		for _, g := range rg {
+			goldBy[g.Category] = append(goldBy[g.Category], span{g.Start, g.End})
+		}
+		for c := range goldBy {
+			goldBy[c] = mergeSpans(goldBy[c])
+		}
 		var open []flag1
+		goldCats := map[float64]map[string]bool{} // flag start -> human categories (conflicts mode)
 		for _, f := range fl {
-			if inside(f.span, covered)/(f.e-f.s) < 0.5 {
+			if !*conflicts {
+				if inside(f.span, covered)/(f.e-f.s) < 0.5 {
+					open = append(open, f)
+				}
+				continue
+			}
+			// Conflict: mostly inside human labels, but of another category only.
+			if inside(f.span, goldBy[f.cat])/(f.e-f.s) >= 0.5 {
+				continue
+			}
+			others := map[string]bool{}
+			for c, sp := range goldBy {
+				if c != f.cat && inside(f.span, sp)/(f.e-f.s) >= 0.5 {
+					others[c] = true
+				}
+			}
+			if len(others) > 0 {
 				open = append(open, f)
+				goldCats[f.s] = others
 			}
 		}
 		sort.Slice(open, func(i, j int) bool { return open[i].s < open[j].s })
@@ -125,12 +153,18 @@ func runSheet(args []string) error {
 					cur.end = f.e
 				}
 				cur.cats[f.cat], cur.runs[f.run] = true, true
+				for c := range goldCats[f.s] {
+					cur.gold[c] = true
+				}
 				continue
 			}
 			if cur != nil {
 				items = append(items, *cur)
 			}
-			cur = &item{video: id, start: f.s, end: f.e, cats: map[string]bool{f.cat: true}, runs: map[string]bool{f.run: true}}
+			cur = &item{video: id, start: f.s, end: f.e, cats: map[string]bool{f.cat: true}, runs: map[string]bool{f.run: true}, gold: map[string]bool{}}
+			for c := range goldCats[f.s] {
+				cur.gold[c] = true
+			}
 		}
 		if cur != nil {
 			items = append(items, *cur)
@@ -145,15 +179,26 @@ func runSheet(args []string) error {
 		return err
 	}
 	var md, key strings.Builder
-	fmt.Fprintf(&md, "# Blind review sheet (private, not in the repo)\n\nFor every item, write one verdict: **sponsor** / **self_promotion** / **not an ad** / **unclear** (+ one line why).\nThe stretch was flagged by at least one automatic detector run and is not covered by any human label or earlier verdict. The source is hidden on purpose. Times are player times.\n\n")
+	if *conflicts {
+		fmt.Fprintf(&md, "# Category check sheet (private, not in the repo)\n\nThe detector and the human labels disagree about the CATEGORY of the same stretch. Decide by the rule: **sponsor = an outside party paid the author for this piece; self_promotion = the speaker (author, their studio, their guest) promotes themselves, nobody outside paid.** For every item write one verdict: **sponsor** / **self_promotion** / **not an ad** / **unclear** (+ one line why). Times are player times.\n\n")
+	} else {
+		fmt.Fprintf(&md, "# Blind review sheet (private, not in the repo)\n\nFor every item, write one verdict: **sponsor** / **self_promotion** / **not an ad** / **unclear** (+ one line why).\nThe stretch was flagged by at least one automatic detector run and is not covered by any human label or earlier verdict. The source is hidden on purpose. Times are player times.\n\n")
+	}
 	key.WriteString("item\tnative_id\tstart\tend\tcategories\truns_flagging\n")
 	for i, it := range items {
 		n := fmt.Sprintf("C%d", i+1)
+		if *conflicts {
+			n = fmt.Sprintf("K%d", i+1)
+		}
 		cues, err := cueText(*data, *providerName, it.video, it.start, it.end, offsets[*providerName+":"+it.video])
 		if err != nil {
 			return err
 		}
-		fmt.Fprintf(&md, "### %s. %s · %s – %s (%.0f s)\n\nProposed as: %s\n\nLink: %s\n\n> %s\n\nVerdict: \n\n", n, it.video, clock(it.start), clock(it.end), it.end-it.start, joinKeys(it.cats, " / "), prov.LinkAt(it.video, int(it.start)-2), cues)
+		label := "Proposed as: " + joinKeys(it.cats, " / ")
+		if *conflicts {
+			label = "Detector said: " + joinKeys(it.cats, " / ") + " · Humans labelled: " + joinKeys(it.gold, " / ")
+		}
+		fmt.Fprintf(&md, "### %s. %s · %s – %s (%.0f s)\n\n%s\n\nLink: %s\n\n> %s\n\nVerdict: \n\n", n, it.video, clock(it.start), clock(it.end), it.end-it.start, label, prov.LinkAt(it.video, int(it.start)-2), cues)
 		fmt.Fprintf(&key, "%s\t%s\t%.1f\t%.1f\t%s\t%s\n", n, it.video, it.start, it.end, joinKeys(it.cats, "+"), joinKeys(it.runs, ","))
 	}
 	if err := os.MkdirAll(filepath.Dir(*out), 0o755); err != nil {
@@ -212,4 +257,16 @@ func cueText(data, provider, id string, start, end, offset float64) (string, err
 		t = string(r[:700]) + " […]"
 	}
 	return t, nil
+}
+
+// shiftToPlayer moves a transcript-time span to player time. The offset is a
+// per-video constant estimated from mid-video evidence, so near the start it
+// can push a span before zero; the part before zero is cut, and a span that
+// ends up empty is dropped (ok = false).
+func shiftToPlayer(start, end, offset float64) (float64, float64, bool) {
+	start, end = start-offset, end-offset
+	if start < 0 {
+		start = 0
+	}
+	return start, end, end > start
 }

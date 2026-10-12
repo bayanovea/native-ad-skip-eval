@@ -1,0 +1,21 @@
+{
+  "id": "2026-10-12-claude-sonnet-5-5-v2-batch-nt-rerun",
+  "created_at": "2026-10-12T12:27:06Z",
+  "model": "claude-sonnet-5-5",
+  "effort": "medium",
+  "no_times": true,
+  "transport": "batch",
+  "price_factor": 0.5,
+  "batch_id": "msgbatch_01CWrEqjckW8874ym85aPYGb",
+  "prompt_version": "v2",
+  "prompt_sha256": "fc19202299ac561c202a9918db04a65206196bc2a4787cb7e14b3a0a6360e88a",
+  "evalset": "v0",
+  "provider": "main",
+  "prices_usd_per_mtok": {
+    "Input": 2,
+    "Output": 10,
+    "CacheRead": 0.2,
+    "CacheWrite": 2.5
+  },
+  "min_segment_seconds_for_scoring": 5
+}

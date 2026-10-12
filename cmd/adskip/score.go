@@ -102,8 +102,11 @@ func runScore(args []string) error {
 		if !okVideo[key] {
 			continue // predictions of a call that later failed validation are not scored
 		}
-		off := offsets[key] // transcript time minus player time; 0 when unknown
-		preds = append(preds, score.Pred{Video: key, Category: p.Category, Start: p.Start - off, End: p.End - off, Confidence: p.Confidence})
+		a, b, ok := shiftToPlayer(p.Start, p.End, offsets[key]) // transcript minus player time; 0 when unknown
+		if !ok {
+			continue
+		}
+		preds = append(preds, score.Pred{Video: key, Category: p.Category, Start: a, End: b, Confidence: p.Confidence})
 	}
 
 	reviewsApplied := 0
