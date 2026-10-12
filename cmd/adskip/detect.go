@@ -23,6 +23,7 @@ type runConfig struct {
 	CreatedAt     string         `json:"created_at"`
 	Model         string         `json:"model"`
 	Effort        string         `json:"effort"`
+	Thinking      bool           `json:"thinking,omitempty"`
 	NoTimes       bool           `json:"no_times,omitempty"`
 	WindowSeconds float64        `json:"window_seconds,omitempty"`
 	Transport     string         `json:"transport"`              // api | cli | batch
@@ -74,6 +75,7 @@ func runDetect(args []string) error {
 	batchID := fs.String("batch-id", "", "transport batch: attach to an already submitted batch instead of submitting again")
 	noTimes := fs.Bool("no-times", false, "request format: omit cue times (needs a prompt that describes this format)")
 	window := fs.Float64("window", 0, "request format: merge cues into windows of at least this many seconds (0 = off)")
+	thinking := fs.Bool("thinking", false, "transport cli: keep extended thinking on (off by default, to match the API client)")
 	tag := fs.String("tag", "", "suffix for the run id, e.g. \"rerun\"; a different tag is a different run")
 	promptPath := fs.String("prompt", "prompts/v1.md", "prompt file; its name is the prompt version")
 	runsDir := fs.String("runs", "runs", "directory for run config and metrics")
@@ -116,6 +118,12 @@ func runDetect(args []string) error {
 	if format.NoTimes {
 		runID += "-nt"
 	}
+	if *thinking {
+		if *transport != "cli" {
+			return fmt.Errorf("-thinking is only wired for -transport cli")
+		}
+		runID += "-think"
+	}
 	if format.WindowSeconds > 0 {
 		runID += fmt.Sprintf("-w%g", format.WindowSeconds)
 	}
@@ -123,7 +131,7 @@ func runDetect(args []string) error {
 		runID += "-" + *tag
 	}
 	cfg := runConfig{
-		ID: runID, CreatedAt: time.Now().UTC().Format(time.RFC3339), Model: *model, Effort: *effort, Transport: *transport, PriceFactor: priceFactor, NoTimes: format.NoTimes, WindowSeconds: format.WindowSeconds,
+		ID: runID, CreatedAt: time.Now().UTC().Format(time.RFC3339), Model: *model, Effort: *effort, Transport: *transport, Thinking: *thinking, PriceFactor: priceFactor, NoTimes: format.NoTimes, WindowSeconds: format.WindowSeconds,
 		PromptVersion: prompt.Version, PromptSHA: prompt.SHA, Evalset: *set, Provider: *providerName,
 		Prices: price, MinSegmentSeconds: 5,
 	}
@@ -141,6 +149,9 @@ func runDetect(args []string) error {
 			return err
 		}
 		defer c.Close()
+		if *thinking {
+			c.WithThinking()
+		}
 		cfg.CLIVersion = c.Version()
 		client = c
 	case "batch":

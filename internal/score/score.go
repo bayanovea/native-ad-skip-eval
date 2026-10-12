@@ -47,8 +47,11 @@ type Pred struct {
 type Options struct {
 	MinSeconds    float64 // predictions shorter than this are dropped before matching
 	MinConfidence string  // "", "low", "medium" or "high": predictions below are dropped
-	IoU           float64 // minimum intersection-over-union for a hit
-	Categories    []string
+	// MinConfidenceBy overrides MinConfidence per category (the product rule:
+	// sponsor from medium, self_promotion only high).
+	MinConfidenceBy map[string]string
+	IoU             float64 // minimum intersection-over-union for a hit
+	Categories      []string
 }
 
 // Pair is one matched prediction/gold pair with its boundary errors in seconds
@@ -149,7 +152,11 @@ func Score(golds []Gold, preds []Pred, opt Options) Result {
 		if p.End-p.Start < opt.MinSeconds {
 			continue
 		}
-		if opt.MinConfidence != "" && confidenceRank[p.Confidence] < confidenceRank[opt.MinConfidence] {
+		min := opt.MinConfidence
+		if c, ok := opt.MinConfidenceBy[p.Category]; ok {
+			min = c
+		}
+		if min != "" && confidenceRank[p.Confidence] < confidenceRank[min] {
 			continue
 		}
 		kept = append(kept, p)
@@ -486,4 +493,17 @@ func fratio(a, b float64) float64 {
 		return 0
 	}
 	return a / b
+}
+
+// NetScore is the one number used to compare variants: the share of all ad
+// time that was removed, minus lambda times the content that was wrongly
+// removed, both in seconds. A wrongly cut second counts lambda times worse than
+// a missed ad second, because the player skips without asking (prompt purpose).
+// 1.0 = every ad second removed and nothing else; 0 = what a viewer gets with
+// no detector; below 0 = the detector costs more content than it saves ads.
+func NetScore(x Seconds, lambda float64) float64 {
+	if x.Gold == 0 {
+		return 0
+	}
+	return (x.Both - lambda*x.WronglySkipped()) / x.Gold
 }

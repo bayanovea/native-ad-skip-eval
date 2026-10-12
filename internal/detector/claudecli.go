@@ -35,10 +35,11 @@ import (
 // session files, an empty working directory. (--bare would do more but it
 // refuses subscription auth.)
 type ClaudeCLI struct {
-	model   string
-	effort  string
-	version string
-	workdir string
+	thinking bool // leave Claude Code's thinking on (default off, see Detect)
+	model    string
+	effort   string
+	version  string
+	workdir  string
 }
 
 // cliTimeout bounds one call; Opus on a 2-hour transcript is the slow case.
@@ -60,6 +61,11 @@ func NewClaudeCLI(model, effort string) (*ClaudeCLI, error) {
 	}
 	return &ClaudeCLI{model: model, effort: effort, version: strings.TrimSpace(string(out)), workdir: dir}, nil
 }
+
+// WithThinking turns extended thinking on (it is off by default to match the
+// API client). Output tokens grow by thousands per video: the cost is no longer
+// input-only, which is exactly what the experiment measures.
+func (c *ClaudeCLI) WithThinking() *ClaudeCLI { c.thinking = true; return c }
 
 // Model implements Client.
 func (c *ClaudeCLI) Model() string { return c.model }
@@ -114,7 +120,9 @@ func (c *ClaudeCLI) Detect(ctx context.Context, req Request) (Result, error) {
 	// The API client sends no thinking parameter, so the model does not think;
 	// Claude Code turns thinking on by default (8k+ tokens, a minute per video).
 	// Off, to measure the same thing.
-	cmd.Env = append(cmd.Env, "CLAUDE_CODE_DISABLE_THINKING=1")
+	if !c.thinking {
+		cmd.Env = append(cmd.Env, "CLAUDE_CODE_DISABLE_THINKING=1")
+	}
 	var stdout, stderr bytes.Buffer
 	cmd.Stdout, cmd.Stderr = &stdout, &stderr
 

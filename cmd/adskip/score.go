@@ -30,6 +30,8 @@ func runScore(args []string) error {
 	goldMode := fs.String("gold", "all", "which human labels count: all | assessor | reviewed (all + eye-check verdicts applied)")
 	noOffsets := fs.Bool("no-offsets", false, "ignore per-video timeline offsets (video_offsets)")
 	excludeOwner := fs.String("exclude-owner", "", "leave out videos whose native id starts with this owner part (e.g. c1: a channel that dominates the set)")
+	lambda := fs.Float64("lambda", 10, "headline: a wrongly cut second counts this many times worse than a missed ad second")
+	detail := fs.Bool("detail", false, "also print the full table (segments, categories, boundaries, confidence levels)")
 	list := fs.Bool("list", false, "print false positives and misses with video ids to stdout (private)")
 	if err := fs.Parse(args); err != nil {
 		return err
@@ -52,95 +54,20 @@ func runScore(args []string) error {
 	}
 	defer st.Close()
 
-	videos, err := st.RunVideos(ctx, *runID, "ok")
-	if err != nil {
-		return err
-	}
-	if len(videos) == 0 {
-		return fmt.Errorf("run %s has no ok videos in the store", *runID)
-	}
-	// In assessor mode a video without any assessor label has no gold at all,
-	// so it is left out entirely rather than scored as "no ads here".
-	okVideo := map[string]bool{}
-	var kept [][2]string
-	for _, v := range videos {
-		if *excludeOwner != "" && strings.HasPrefix(v[1], *excludeOwner+"_") {
-			continue
-		}
-		kept = append(kept, v)
-	}
-	videos = kept
-	if len(videos) == 0 {
-		return fmt.Errorf("no videos left after -exclude-owner %s", *excludeOwner)
-	}
-	var golds []score.Gold
-	scored := 0
-	for _, v := range videos {
-		key := v[0] + ":" + v[1]
-		labels, err := st.Labels(ctx, v[0], v[1])
-		if err != nil {
-			return err
-		}
-		var vg []score.Gold
-		hasAssessor := false
-		for _, l := range labels {
-			hasAssessor = hasAssessor || l.Assessor
-			if *goldMode == "assessor" && !l.Assessor {
-				continue
-			}
-			vg = append(vg, score.Gold{Video: key, Category: l.Category, Start: l.Start, End: l.End, Contributor: l.Contributor, Assessor: l.Assessor})
-		}
-		if *goldMode == "assessor" && !hasAssessor {
-			continue
-		}
-		okVideo[key] = true
-		scored++
-		golds = append(golds, vg...)
-	}
-	rawPreds, err := st.Predictions(ctx, *runID)
-	if err != nil {
-		return err
-	}
-	offsets, err := st.Offsets(ctx)
-	if err != nil {
-		return err
-	}
-	if *noOffsets {
-		offsets = nil
-	}
-	var preds []score.Pred
-	for _, p := range rawPreds {
-		key := p.Provider + ":" + p.NativeID
-		if !okVideo[key] {
-			continue // predictions of a call that later failed validation are not scored
-		}
-		a, b, ok := shiftToPlayer(p.Start, p.End, offsets[key]) // transcript minus player time; 0 when unknown
-		if !ok {
-			continue
-		}
-		preds = append(preds, score.Pred{Video: key, Category: p.Category, Start: a, End: b, Confidence: p.Confidence})
-	}
-
-	reviewsApplied := 0
-	if *goldMode == "reviewed" {
-		stored, err := st.Reviews(ctx)
-		if err != nil {
-			return err
-		}
-		var reviews []score.Review
-		for _, r := range stored {
-			if key := r.Provider + ":" + r.NativeID; okVideo[key] {
-				reviews = append(reviews, score.Review{Video: key, Category: r.Category, Start: r.Start, End: r.End, Verdict: r.Verdict, Item: r.Item, Note: r.Note})
-			}
-		}
-		if len(reviews) == 0 {
-			return fmt.Errorf("-gold reviewed: no stored verdicts for this run's videos (adskip review)")
-		}
-		golds, preds = score.ApplyReviews(golds, preds, reviews)
-		reviewsApplied = len(reviews)
-	}
 	opt := score.Options{MinSeconds: *minSeconds, MinConfidence: *minConf, IoU: *iou}
-	res := score.Score(golds, preds, opt)
+	res, scored, reviewsApplied, err := computeScore(ctx, st, *runID, scoreParams{Gold: *goldMode, ExcludeOwner: *excludeOwner, NoOffsets: *noOffsets, Opt: opt})
+	if err != nil {
+		return err
+	}
+	headline := func() error {
+		hopt := score.Options{MinSeconds: *minSeconds, IoU: *iou, MinConfidenceBy: productConfidence}
+		hres, _, _, err := computeScore(ctx, st, *runID, scoreParams{Gold: *goldMode, ExcludeOwner: *excludeOwner, NoOffsets: *noOffsets, Opt: hopt})
+		if err != nil {
+			return err
+		}
+		printHeadline(*runID, scored, *goldMode, hres.BySeconds[score.AnyAd], *lambda)
+		return nil
+	}
 
 	tag := fmt.Sprintf("s%g-c%s-iou%g-%s", *minSeconds, orDefault(*minConf, "any"), *iou, *goldMode)
 	if *excludeOwner != "" {
@@ -171,8 +98,14 @@ func runScore(args []string) error {
 		return err
 	}
 
-	printScore(out)
-	fmt.Printf("\nwritten %s\n", path)
+	if err := headline(); err != nil {
+		return err
+	}
+	if *detail {
+		fmt.Println()
+		printScore(out)
+		fmt.Printf("\nwritten %s\n", path)
+	}
 	if *list {
 		printList(res)
 	}
@@ -309,4 +242,14 @@ func copysign(mag, sign float64) float64 {
 		return -mag
 	}
 	return mag
+}
+
+// printHeadline prints the one number used to compare variants, with the two
+// quantities it is made of, in plain words. Product thresholds are applied
+// (sponsor from medium, self_promotion only high). Ad time is the union of all
+// categories.
+func printHeadline(run string, videos int, gold string, x score.Seconds, lambda float64) {
+	fmt.Printf("%s · %d videos · gold: %s\n", run, videos, gold)
+	fmt.Printf("SCORE %.2f   (ad time removed, minus %g× the content wrongly removed; 1.0 = perfect, 0 = no detector)\n", score.NetScore(x, lambda), lambda)
+	fmt.Printf("  of %.0f s of ad: %.0f s removed (%.0f%%), %.0f s left in · content wrongly cut: %.0f s\n", x.Gold, x.Both, 100*x.Recall(), x.MissedAd(), x.WronglySkipped())
 }
