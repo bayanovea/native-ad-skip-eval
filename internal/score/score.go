@@ -77,6 +77,25 @@ func (c Counts) F1() float64 {
 	return 2 * p * r / (p + r)
 }
 
+// Seconds is the time-weighted view of one category: how many seconds the
+// detector would skip (Pred), how many the humans marked (Gold) and how many
+// of them coincide (Both). It does not care how a block is cut into segments,
+// which is exactly where the segment-level IoU rule punishes a model that
+// splits one long gold block into pieces. Precision is the share of skipped
+// seconds that were ads; recall is the share of ad seconds that were skipped.
+type Seconds struct {
+	Pred, Gold, Both float64
+}
+
+func (x Seconds) Precision() float64 { return fratio(x.Both, x.Pred) }
+func (x Seconds) Recall() float64    { return fratio(x.Both, x.Gold) }
+
+// WronglySkipped is content a viewer would lose (skipped, not an ad).
+func (x Seconds) WronglySkipped() float64 { return x.Pred - x.Both }
+
+// MissedAd is ad time that stays in the video.
+func (x Seconds) MissedAd() float64 { return x.Gold - x.Both }
+
 // Quantiles summarises a distribution of boundary errors.
 type Quantiles struct {
 	N               int
@@ -93,6 +112,7 @@ type Result struct {
 	PredsScored  int            // after filtering
 	GoldMerged   map[string]int // category -> merged gold segments
 	ByCategory   map[string]Counts
+	BySeconds    map[string]Seconds
 	ByConfidence map[string]map[string]Counts // category -> confidence -> counts (TP/FP only)
 	Start, End   map[string]Quantiles         // category -> boundary error distribution
 	Pairs        []Pair
@@ -114,6 +134,7 @@ func Score(golds []Gold, preds []Pred, opt Options) Result {
 		PredsTotal:   len(preds),
 		GoldMerged:   map[string]int{},
 		ByCategory:   map[string]Counts{},
+		BySeconds:    map[string]Seconds{},
 		ByConfidence: map[string]map[string]Counts{},
 		Start:        map[string]Quantiles{},
 		End:          map[string]Quantiles{},
@@ -165,6 +186,7 @@ func Score(golds []Gold, preds []Pred, opt Options) Result {
 		pairs, fp, fn := match(g, p, opt.IoU)
 		c := Counts{TP: len(pairs), FP: len(fp), FN: len(fn)}
 		res.ByCategory[cat] = c
+		res.BySeconds[cat] = secondsOverlap(g, p)
 		res.ByConfidence[cat] = byConfidence(pairs, fp)
 		res.Start[cat] = quantiles(pairs, func(x Pair) float64 { return x.StartDelta })
 		res.End[cat] = quantiles(pairs, func(x Pair) float64 { return x.EndDelta })
@@ -406,4 +428,62 @@ func filterPreds(ps []Pred, cat string) []Pred {
 		}
 	}
 	return out
+}
+
+// secondsOverlap sums, per video, the union length of predictions, of gold and
+// of their intersection. Both inputs are unioned first, so overlapping
+// intervals are never counted twice.
+func secondsOverlap(golds []Gold, preds []Pred) Seconds {
+	type iv struct{ s, e float64 }
+	gv, pv := map[string][]iv{}, map[string][]iv{}
+	for _, g := range golds {
+		gv[g.Video] = append(gv[g.Video], iv{g.Start, g.End})
+	}
+	for _, p := range preds {
+		pv[p.Video] = append(pv[p.Video], iv{p.Start, p.End})
+	}
+	union := func(xs []iv) []iv {
+		sort.Slice(xs, func(i, j int) bool { return xs[i].s < xs[j].s })
+		var out []iv
+		for _, x := range xs {
+			if n := len(out); n > 0 && x.s <= out[n-1].e {
+				out[n-1].e = math.Max(out[n-1].e, x.e)
+				continue
+			}
+			out = append(out, x)
+		}
+		return out
+	}
+	var r Seconds
+	videos := map[string]bool{}
+	for v := range gv {
+		videos[v] = true
+	}
+	for v := range pv {
+		videos[v] = true
+	}
+	for v := range videos {
+		g, p := union(gv[v]), union(pv[v])
+		for _, x := range g {
+			r.Gold += x.e - x.s
+		}
+		for _, x := range p {
+			r.Pred += x.e - x.s
+		}
+		for _, a := range g {
+			for _, b := range p {
+				if lo, hi := math.Max(a.s, b.s), math.Min(a.e, b.e); hi > lo {
+					r.Both += hi - lo
+				}
+			}
+		}
+	}
+	return r
+}
+
+func fratio(a, b float64) float64 {
+	if b == 0 {
+		return 0
+	}
+	return a / b
 }

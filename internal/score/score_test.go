@@ -154,3 +154,24 @@ func TestApplyReviews(t *testing.T) {
 		t.Errorf("sponsor = %+v, want only the untouched 100-160 miss", res.ByCategory["sponsor"])
 	}
 }
+
+func TestSecondsOverlapIgnoresHowBlocksAreCut(t *testing.T) {
+	golds := []Gold{{Video: "v", Category: "sponsor", Start: 100, End: 400}}
+	// One long gold block (300 s) predicted as two pieces: IoU rule would miss both,
+	// seconds see 220 s of 300 s covered and no wrongly skipped time.
+	preds := []Pred{
+		{Video: "v", Category: "sponsor", Start: 110, End: 200},
+		{Video: "v", Category: "sponsor", Start: 250, End: 380},
+	}
+	r := Score(golds, preds, Options{IoU: 0.5, MinSeconds: 5})
+	sec := r.BySeconds["sponsor"]
+	if sec.Both != 220 || sec.Pred != 220 || sec.Gold != 300 {
+		t.Fatalf("seconds = %+v", sec)
+	}
+	if sec.Precision() != 1 || math.Abs(sec.Recall()-220.0/300) > 1e-9 {
+		t.Fatalf("precision %v recall %v", sec.Precision(), sec.Recall())
+	}
+	if r.ByCategory["sponsor"].TP != 0 {
+		t.Fatalf("segment level should miss both pieces at IoU 0.5, got %+v", r.ByCategory["sponsor"])
+	}
+}

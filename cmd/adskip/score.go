@@ -134,7 +134,10 @@ func runScore(args []string) error {
 		GoldMerged: res.GoldMerged, Categories: map[string]catMetrics{},
 	}
 	for cat, c := range res.ByCategory {
-		m := catMetrics{TP: c.TP, FP: c.FP, FN: c.FN, Precision: round3(c.Precision()), Recall: round3(c.Recall()), F1: round3(c.F1()),
+		sec := res.BySeconds[cat]
+		m := catMetrics{Seconds: secondsMetrics{Precision: round3(sec.Precision()), Recall: round3(sec.Recall()),
+			WronglySkippedS: round1(sec.WronglySkipped()), MissedAdS: round1(sec.MissedAd()), PredictedS: round1(sec.Pred), GoldS: round1(sec.Gold)},
+			TP: c.TP, FP: c.FP, FN: c.FN, Precision: round3(c.Precision()), Recall: round3(c.Recall()), F1: round3(c.F1()),
 			ByConfidence: map[string]confMetrics{}, StartError: toBoundary(res.Start[cat]), EndError: toBoundary(res.End[cat])}
 		for conf, cc := range res.ByConfidence[cat] {
 			m.ByConfidence[conf] = confMetrics{TP: cc.TP, FP: cc.FP, Precision: round3(cc.Precision())}
@@ -178,7 +181,20 @@ type confMetrics struct {
 	Precision float64 `json:"precision"`
 }
 
+// secondsMetrics is the time-weighted view: share of skipped seconds that were
+// ads (precision), share of ad seconds that were skipped (recall), and the two
+// absolute error masses a viewer feels.
+type secondsMetrics struct {
+	Precision       float64 `json:"precision"`
+	Recall          float64 `json:"recall"`
+	WronglySkippedS float64 `json:"wrongly_skipped_s"`
+	MissedAdS       float64 `json:"missed_ad_s"`
+	PredictedS      float64 `json:"predicted_s"`
+	GoldS           float64 `json:"gold_s"`
+}
+
 type catMetrics struct {
+	Seconds      secondsMetrics `json:"seconds"`
 	TP, FP, FN   int
 	Precision    float64                `json:"precision"`
 	Recall       float64                `json:"recall"`
@@ -221,6 +237,11 @@ func printScore(f scoreFile) {
 		fmt.Printf("%-15s %4d %4d %4d  %6.2f %6.2f %6.2f   %-26s %-26s\n", c, m.TP, m.FP, m.FN, m.Precision, m.Recall, m.F1,
 			fmt.Sprintf("%+.1f / %.1f / %.1f s", m.StartError.MedianSigned, m.StartError.AbsP50, m.StartError.AbsP90),
 			fmt.Sprintf("%+.1f / %.1f / %.1f s", m.EndError.MedianSigned, m.EndError.AbsP50, m.EndError.AbsP90))
+	}
+	fmt.Println("seconds (time-weighted):   prec    rec   wrongly skipped / missed ad")
+	for _, c := range cats {
+		sm := f.Categories[c].Seconds
+		fmt.Printf("  %-15s %6.2f %6.2f   %6.0f s / %6.0f s   (predicted %.0f s, gold %.0f s)\n", c, sm.Precision, sm.Recall, sm.WronglySkippedS, sm.MissedAdS, sm.PredictedS, sm.GoldS)
 	}
 	fmt.Println("precision by confidence:")
 	for _, c := range cats {

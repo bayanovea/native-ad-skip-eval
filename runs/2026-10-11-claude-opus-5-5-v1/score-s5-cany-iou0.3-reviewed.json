@@ -16,6 +16,14 @@
   },
   "categories": {
     "any_ad": {
+      "seconds": {
+        "precision": 0.986,
+        "recall": 0.777,
+        "wrongly_skipped_s": 29.8,
+        "missed_ad_s": 604.4,
+        "predicted_s": 2138.4,
+        "gold_s": 2713
+      },
       "TP": 39,
       "FP": 5,
       "FN": 11,
@@ -63,6 +71,14 @@
       }
     },
     "self_promotion": {
+      "seconds": {
+        "precision": 0.985,
+        "recall": 0.751,
+        "wrongly_skipped_s": 8.3,
+        "missed_ad_s": 176.6,
+        "predicted_s": 541,
+        "gold_s": 709.3
+      },
       "TP": 16,
       "FP": 3,
       "FN": 7,
@@ -110,6 +126,14 @@
       }
     },
     "sponsor": {
+      "seconds": {
+        "precision": 0.986,
+        "recall": 0.737,
+        "wrongly_skipped_s": 21.6,
+        "missed_ad_s": 562,
+        "predicted_s": 1597.4,
+        "gold_s": 2137.8
+      },
       "TP": 23,
       "FP": 2,
       "FN": 6,
