@@ -7,7 +7,7 @@ the first, `modernc.org/sqlite`, no cgo).
 
 ## Layout
 
-- `cmd/adskip` — the single CLI (`fetch`, `collapse`, `import`, `evalset`, `detect`; later `score`).
+- `cmd/adskip` — the single CLI (`fetch`, `collapse`, `import`, `evalset`, `detect`, `score`).
 - `internal/vtt` — WebVTT parsing and collapsing of rolling captions into plain cues.
 - `internal/transcript` — the JSONL transcript format (meta line + cue lines).
 - `internal/ytdlp` — thin wrapper over the `yt-dlp` binary with retries.
@@ -23,6 +23,12 @@ the first, `modernc.org/sqlite`, no cgo).
   the product later, so it imports only `transcript`/`vtt`.** `anthropic.go` is the Claude API
   client (Go SDK, structured output via JSON schema). The model returns cue indices, never
   timestamps; `Resolve` maps them to seconds.
+- `internal/score` — the scorer: merges gold per video and category (union across contributors),
+  matches predictions one-to-one by IoU, reports precision/recall per category plus a
+  category-agnostic `any_ad` view (what a skip button sees), precision per confidence level and
+  boundary-error quantiles. Thresholds (`-min-seconds`, `-min-confidence`, `-iou`, `-gold`) are
+  flags: predictions are raw, one paid run is scored under many settings. Writes
+  `runs/<id>/score-<settings>.json` (aggregates only); `-list` prints per-video detail to stdout.
 - `prompts/vN.md` — versioned prompts; the file name is the version, the sha256 is in each run's config.
 - `internal/netguard` — external-IP check; fetch refuses to run from a home IP.
 - `internal/policy` — repo-wide tests; `TestNoVideoIDsInTrackedFiles` fails on any video id in tracked files.

@@ -92,3 +92,66 @@ func (s *Store) CallStatus(ctx context.Context, runID, provider, nativeID string
 	}
 	return status, err
 }
+
+// RunVideos lists the videos of a run with the given call status.
+func (s *Store) RunVideos(ctx context.Context, runID, status string) ([][2]string, error) {
+	rows, err := s.DB.QueryContext(ctx, `SELECT provider, native_id FROM calls WHERE run_id = ? AND status = ? ORDER BY provider, native_id`, runID, status)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out [][2]string
+	for rows.Next() {
+		var v [2]string
+		if err := rows.Scan(&v[0], &v[1]); err != nil {
+			return nil, err
+		}
+		out = append(out, v)
+	}
+	return out, rows.Err()
+}
+
+// Predictions returns every raw prediction of a run.
+func (s *Store) Predictions(ctx context.Context, runID string) ([]Prediction, error) {
+	rows, err := s.DB.QueryContext(ctx, `SELECT run_id, provider, native_id, category, start, "end", first_cue, last_cue, confidence, quote, quote_ok
+		FROM predictions WHERE run_id = ? ORDER BY provider, native_id, start`, runID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []Prediction
+	for rows.Next() {
+		var p Prediction
+		if err := rows.Scan(&p.RunID, &p.Provider, &p.NativeID, &p.Category, &p.Start, &p.End, &p.FirstCue, &p.LastCue, &p.Confidence, &p.Quote, &p.QuoteOK); err != nil {
+			return nil, err
+		}
+		out = append(out, p)
+	}
+	return out, rows.Err()
+}
+
+// LabeledInterval is a gold label joined with its contributor's assessor flag.
+type LabeledInterval struct {
+	Label
+	Assessor bool
+}
+
+// Labels returns the human labels of one video, every contributor and category.
+func (s *Store) Labels(ctx context.Context, provider, nativeID string) ([]LabeledInterval, error) {
+	rows, err := s.DB.QueryContext(ctx, `SELECT l.provider, l.native_id, l.contributor, l.category, l.start, l."end", COALESCE(l.created_at, ''), l.source, c.is_assessor
+		FROM labels l JOIN contributors c ON c.id = l.contributor
+		WHERE l.provider = ? AND l.native_id = ? ORDER BY l.start`, provider, nativeID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []LabeledInterval
+	for rows.Next() {
+		var l LabeledInterval
+		if err := rows.Scan(&l.Provider, &l.NativeID, &l.Contributor, &l.Category, &l.Start, &l.End, &l.CreatedAt, &l.Source, &l.Assessor); err != nil {
+			return nil, err
+		}
+		out = append(out, l)
+	}
+	return out, rows.Err()
+}
