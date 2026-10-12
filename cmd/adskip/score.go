@@ -29,6 +29,7 @@ func runScore(args []string) error {
 	iou := fs.Float64("iou", 0.5, "minimum intersection-over-union for a hit")
 	goldMode := fs.String("gold", "all", "which human labels count: all | assessor | reviewed (all + eye-check verdicts applied)")
 	noOffsets := fs.Bool("no-offsets", false, "ignore per-video timeline offsets (video_offsets)")
+	excludeOwner := fs.String("exclude-owner", "", "leave out videos whose native id starts with this owner part (e.g. c1: a channel that dominates the set)")
 	list := fs.Bool("list", false, "print false positives and misses with video ids to stdout (private)")
 	if err := fs.Parse(args); err != nil {
 		return err
@@ -61,6 +62,17 @@ func runScore(args []string) error {
 	// In assessor mode a video without any assessor label has no gold at all,
 	// so it is left out entirely rather than scored as "no ads here".
 	okVideo := map[string]bool{}
+	var kept [][2]string
+	for _, v := range videos {
+		if *excludeOwner != "" && strings.HasPrefix(v[1], *excludeOwner+"_") {
+			continue
+		}
+		kept = append(kept, v)
+	}
+	videos = kept
+	if len(videos) == 0 {
+		return fmt.Errorf("no videos left after -exclude-owner %s", *excludeOwner)
+	}
 	var golds []score.Gold
 	scored := 0
 	for _, v := range videos {
@@ -131,6 +143,9 @@ func runScore(args []string) error {
 	res := score.Score(golds, preds, opt)
 
 	tag := fmt.Sprintf("s%g-c%s-iou%g-%s", *minSeconds, orDefault(*minConf, "any"), *iou, *goldMode)
+	if *excludeOwner != "" {
+		tag += "-ex" + strings.TrimPrefix(*excludeOwner, "-")
+	}
 	out := scoreFile{
 		Run: *runID, Settings: scoreSettings{MinSeconds: *minSeconds, MinConfidence: orDefault(*minConf, "any"), IoU: *iou, Gold: *goldMode},
 		VideosScored: scored, PredsTotal: res.PredsTotal, PredsScored: res.PredsScored, ReviewsApplied: reviewsApplied,

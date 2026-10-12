@@ -9,27 +9,27 @@
   "videos_scored": 18,
   "predictions_total": 58,
   "predictions_scored": 55,
-  "reviews_applied": 35,
+  "reviews_applied": 40,
   "gold_segments_merged": {
-    "self_promotion": 23,
-    "sponsor": 29
+    "self_promotion": 24,
+    "sponsor": 27
   },
   "categories": {
     "any_ad": {
       "seconds": {
-        "precision": 0.889,
+        "precision": 0.895,
         "recall": 0.688,
-        "wrongly_skipped_s": 233.9,
-        "missed_ad_s": 847.4,
+        "wrongly_skipped_s": 220.8,
+        "missed_ad_s": 852.1,
         "predicted_s": 2099.5,
-        "gold_s": 2713
+        "gold_s": 2730.8
       },
-      "TP": 41,
-      "FP": 14,
+      "TP": 42,
+      "FP": 13,
       "FN": 9,
-      "precision": 0.745,
-      "recall": 0.82,
-      "f1": 0.781,
+      "precision": 0.764,
+      "recall": 0.824,
+      "f1": 0.792,
       "by_confidence": {
         "high": {
           "TP": 30,
@@ -42,49 +42,49 @@
           "precision": 0.5
         },
         "medium": {
-          "TP": 10,
-          "FP": 5,
-          "precision": 0.667
+          "TP": 11,
+          "FP": 4,
+          "precision": 0.733
         }
       },
       "start_error": {
-        "n": 41,
-        "median_signed_s": 1,
-        "abs_p50_s": 2.4,
+        "n": 42,
+        "median_signed_s": 0.2,
+        "abs_p50_s": 2.3,
         "abs_p90_s": 41.8,
         "within_tolerance": {
-          "10s": 0.829,
-          "2s": 0.463,
-          "5s": 0.707
+          "10s": 0.833,
+          "2s": 0.476,
+          "5s": 0.714
         }
       },
       "end_error": {
-        "n": 41,
+        "n": 42,
         "median_signed_s": -1.7,
-        "abs_p50_s": 3,
+        "abs_p50_s": 2.9,
         "abs_p90_s": 23,
         "within_tolerance": {
-          "10s": 0.78,
-          "2s": 0.341,
-          "5s": 0.707
+          "10s": 0.786,
+          "2s": 0.357,
+          "5s": 0.714
         }
       }
     },
     "self_promotion": {
       "seconds": {
-        "precision": 0.753,
-        "recall": 0.804,
-        "wrongly_skipped_s": 186.8,
-        "missed_ad_s": 138.7,
+        "precision": 0.771,
+        "recall": 0.801,
+        "wrongly_skipped_s": 173.6,
+        "missed_ad_s": 145.2,
         "predicted_s": 757.4,
-        "gold_s": 709.3
+        "gold_s": 729
       },
-      "TP": 20,
-      "FP": 9,
+      "TP": 21,
+      "FP": 8,
       "FN": 3,
-      "precision": 0.69,
-      "recall": 0.87,
-      "f1": 0.769,
+      "precision": 0.724,
+      "recall": 0.875,
+      "f1": 0.792,
       "by_confidence": {
         "high": {
           "TP": 12,
@@ -97,49 +97,49 @@
           "precision": 0.5
         },
         "medium": {
-          "TP": 7,
-          "FP": 5,
-          "precision": 0.583
+          "TP": 8,
+          "FP": 4,
+          "precision": 0.667
         }
       },
       "start_error": {
-        "n": 20,
+        "n": 21,
         "median_signed_s": 0,
         "abs_p50_s": 1.3,
         "abs_p90_s": 7.1,
         "within_tolerance": {
           "10s": 1,
-          "2s": 0.55,
-          "5s": 0.75
+          "2s": 0.571,
+          "5s": 0.762
         }
       },
       "end_error": {
-        "n": 20,
-        "median_signed_s": -1.4,
+        "n": 21,
+        "median_signed_s": -1.2,
         "abs_p50_s": 2.2,
         "abs_p90_s": 19.8,
         "within_tolerance": {
-          "10s": 0.85,
-          "2s": 0.45,
-          "5s": 0.8
+          "10s": 0.857,
+          "2s": 0.476,
+          "5s": 0.81
         }
       }
     },
     "sponsor": {
       "seconds": {
         "precision": 0.965,
-        "recall": 0.606,
+        "recall": 0.647,
         "wrongly_skipped_s": 47.2,
-        "missed_ad_s": 842.9,
+        "missed_ad_s": 706.9,
         "predicted_s": 1342.1,
-        "gold_s": 2137.8
+        "gold_s": 2001.8
       },
       "TP": 21,
       "FP": 5,
-      "FN": 8,
+      "FN": 6,
       "precision": 0.808,
-      "recall": 0.724,
-      "f1": 0.764,
+      "recall": 0.778,
+      "f1": 0.792,
       "by_confidence": {
         "high": {
           "TP": 18,

@@ -7,29 +7,29 @@
     "gold": "reviewed"
   },
   "videos_scored": 18,
-  "predictions_total": 57,
+  "predictions_total": 56,
   "predictions_scored": 33,
-  "reviews_applied": 35,
+  "reviews_applied": 40,
   "gold_segments_merged": {
-    "self_promotion": 23,
-    "sponsor": 29
+    "self_promotion": 24,
+    "sponsor": 27
   },
   "categories": {
     "any_ad": {
       "seconds": {
-        "precision": 0.97,
-        "recall": 0.486,
-        "wrongly_skipped_s": 40.6,
-        "missed_ad_s": 1394.7,
+        "precision": 0.973,
+        "recall": 0.484,
+        "wrongly_skipped_s": 36.8,
+        "missed_ad_s": 1408.7,
         "predicted_s": 1358.9,
-        "gold_s": 2713
+        "gold_s": 2730.8
       },
       "TP": 26,
       "FP": 7,
-      "FN": 24,
+      "FN": 25,
       "precision": 0.788,
-      "recall": 0.52,
-      "f1": 0.627,
+      "recall": 0.51,
+      "f1": 0.619,
       "by_confidence": {
         "high": {
           "TP": 26,
@@ -62,19 +62,19 @@
     },
     "self_promotion": {
       "seconds": {
-        "precision": 0.948,
-        "recall": 0.6,
-        "wrongly_skipped_s": 23.6,
-        "missed_ad_s": 283.4,
+        "precision": 0.959,
+        "recall": 0.591,
+        "wrongly_skipped_s": 18.5,
+        "missed_ad_s": 298,
         "predicted_s": 449.5,
-        "gold_s": 709.3
+        "gold_s": 729
       },
       "TP": 12,
       "FP": 2,
-      "FN": 11,
+      "FN": 12,
       "precision": 0.857,
-      "recall": 0.522,
-      "f1": 0.649,
+      "recall": 0.5,
+      "f1": 0.632,
       "by_confidence": {
         "high": {
           "TP": 12,
@@ -108,18 +108,18 @@
     "sponsor": {
       "seconds": {
         "precision": 0.98,
-        "recall": 0.417,
+        "recall": 0.445,
         "wrongly_skipped_s": 18.3,
-        "missed_ad_s": 1246.7,
+        "missed_ad_s": 1110.7,
         "predicted_s": 909.4,
-        "gold_s": 2137.8
+        "gold_s": 2001.8
       },
       "TP": 14,
       "FP": 5,
-      "FN": 15,
+      "FN": 13,
       "precision": 0.737,
-      "recall": 0.483,
-      "f1": 0.583,
+      "recall": 0.519,
+      "f1": 0.609,
       "by_confidence": {
         "high": {
           "TP": 14,

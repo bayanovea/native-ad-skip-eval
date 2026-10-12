@@ -7,34 +7,34 @@
     "gold": "reviewed"
   },
   "videos_scored": 18,
-  "predictions_total": 50,
-  "predictions_scored": 47,
-  "reviews_applied": 35,
+  "predictions_total": 49,
+  "predictions_scored": 46,
+  "reviews_applied": 40,
   "gold_segments_merged": {
-    "self_promotion": 23,
-    "sponsor": 29
+    "self_promotion": 24,
+    "sponsor": 27
   },
   "categories": {
     "any_ad": {
       "seconds": {
-        "precision": 0.928,
-        "recall": 0.685,
-        "wrongly_skipped_s": 143.5,
-        "missed_ad_s": 854.6,
-        "predicted_s": 2001.9,
-        "gold_s": 2713
+        "precision": 0.933,
+        "recall": 0.681,
+        "wrongly_skipped_s": 132.5,
+        "missed_ad_s": 871,
+        "predicted_s": 1992.3,
+        "gold_s": 2730.8
       },
       "TP": 38,
-      "FP": 9,
-      "FN": 12,
-      "precision": 0.809,
-      "recall": 0.76,
+      "FP": 8,
+      "FN": 13,
+      "precision": 0.826,
+      "recall": 0.745,
       "f1": 0.784,
       "by_confidence": {
         "high": {
           "TP": 30,
-          "FP": 7,
-          "precision": 0.811
+          "FP": 6,
+          "precision": 0.833
         },
         "medium": {
           "TP": 8,
@@ -44,7 +44,7 @@
       },
       "start_error": {
         "n": 38,
-        "median_signed_s": 0.7,
+        "median_signed_s": 0.2,
         "abs_p50_s": 2.4,
         "abs_p90_s": 45.4,
         "within_tolerance": {
@@ -67,19 +67,19 @@
     },
     "self_promotion": {
       "seconds": {
-        "precision": 0.912,
-        "recall": 0.779,
-        "wrongly_skipped_s": 53.6,
-        "missed_ad_s": 156.9,
+        "precision": 0.914,
+        "recall": 0.76,
+        "wrongly_skipped_s": 52.1,
+        "missed_ad_s": 175.2,
         "predicted_s": 605.9,
-        "gold_s": 709.3
+        "gold_s": 729
       },
       "TP": 18,
       "FP": 2,
-      "FN": 5,
+      "FN": 6,
       "precision": 0.9,
-      "recall": 0.783,
-      "f1": 0.837,
+      "recall": 0.75,
+      "f1": 0.818,
       "by_confidence": {
         "high": {
           "TP": 12,
@@ -105,36 +105,36 @@
       },
       "end_error": {
         "n": 18,
-        "median_signed_s": -1.2,
-        "abs_p50_s": 2.2,
+        "median_signed_s": -1.4,
+        "abs_p50_s": 3,
         "abs_p90_s": 19.5,
         "within_tolerance": {
           "10s": 0.889,
-          "2s": 0.444,
-          "5s": 0.778
+          "2s": 0.389,
+          "5s": 0.722
         }
       }
     },
     "sponsor": {
       "seconds": {
-        "precision": 0.936,
-        "recall": 0.611,
-        "wrongly_skipped_s": 90,
-        "missed_ad_s": 831.8,
-        "predicted_s": 1396,
-        "gold_s": 2137.8
+        "precision": 0.914,
+        "recall": 0.633,
+        "wrongly_skipped_s": 119.8,
+        "missed_ad_s": 735.3,
+        "predicted_s": 1386.4,
+        "gold_s": 2001.8
       },
-      "TP": 21,
+      "TP": 20,
       "FP": 6,
-      "FN": 8,
-      "precision": 0.778,
-      "recall": 0.724,
-      "f1": 0.75,
+      "FN": 7,
+      "precision": 0.769,
+      "recall": 0.741,
+      "f1": 0.755,
       "by_confidence": {
         "high": {
-          "TP": 19,
+          "TP": 18,
           "FP": 5,
-          "precision": 0.792
+          "precision": 0.783
         },
         "medium": {
           "TP": 2,
@@ -143,25 +143,25 @@
         }
       },
       "start_error": {
-        "n": 21,
+        "n": 20,
         "median_signed_s": 2.4,
         "abs_p50_s": 3.2,
         "abs_p90_s": 50.6,
         "within_tolerance": {
-          "10s": 0.667,
-          "2s": 0.381,
-          "5s": 0.667
+          "10s": 0.65,
+          "2s": 0.35,
+          "5s": 0.65
         }
       },
       "end_error": {
-        "n": 21,
+        "n": 20,
         "median_signed_s": -3.6,
-        "abs_p50_s": 3.9,
-        "abs_p90_s": 23,
+        "abs_p50_s": 3.6,
+        "abs_p90_s": 16.9,
         "within_tolerance": {
-          "10s": 0.667,
-          "2s": 0.19,
-          "5s": 0.571
+          "10s": 0.7,
+          "2s": 0.2,
+          "5s": 0.6
         }
       }
     }

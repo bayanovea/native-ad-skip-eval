@@ -1,0 +1,169 @@
+{
+  "run": "2026-10-12-claude-sonnet-5-5-v1.1-cli-nt",
+  "settings": {
+    "min_seconds": 5,
+    "min_confidence": "medium",
+    "iou": 0.3,
+    "gold": "reviewed"
+  },
+  "videos_scored": 18,
+  "predictions_total": 44,
+  "predictions_scored": 42,
+  "reviews_applied": 40,
+  "gold_segments_merged": {
+    "self_promotion": 24,
+    "sponsor": 27
+  },
+  "categories": {
+    "any_ad": {
+      "seconds": {
+        "precision": 0.961,
+        "recall": 0.687,
+        "wrongly_skipped_s": 75.1,
+        "missed_ad_s": 855.3,
+        "predicted_s": 1950.6,
+        "gold_s": 2730.8
+      },
+      "TP": 36,
+      "FP": 6,
+      "FN": 15,
+      "precision": 0.857,
+      "recall": 0.706,
+      "f1": 0.774,
+      "by_confidence": {
+        "high": {
+          "TP": 24,
+          "FP": 4,
+          "precision": 0.857
+        },
+        "medium": {
+          "TP": 12,
+          "FP": 2,
+          "precision": 0.857
+        }
+      },
+      "start_error": {
+        "n": 36,
+        "median_signed_s": 0.2,
+        "abs_p50_s": 2.4,
+        "abs_p90_s": 41.8,
+        "within_tolerance": {
+          "10s": 0.778,
+          "2s": 0.444,
+          "5s": 0.694
+        }
+      },
+      "end_error": {
+        "n": 36,
+        "median_signed_s": -1.7,
+        "abs_p50_s": 3.6,
+        "abs_p90_s": 23,
+        "within_tolerance": {
+          "10s": 0.75,
+          "2s": 0.278,
+          "5s": 0.667
+        }
+      }
+    },
+    "self_promotion": {
+      "seconds": {
+        "precision": 0.947,
+        "recall": 0.71,
+        "wrongly_skipped_s": 28.8,
+        "missed_ad_s": 211.1,
+        "predicted_s": 546.6,
+        "gold_s": 729
+      },
+      "TP": 15,
+      "FP": 2,
+      "FN": 9,
+      "precision": 0.882,
+      "recall": 0.625,
+      "f1": 0.732,
+      "by_confidence": {
+        "high": {
+          "TP": 5,
+          "FP": 1,
+          "precision": 0.833
+        },
+        "medium": {
+          "TP": 10,
+          "FP": 1,
+          "precision": 0.909
+        }
+      },
+      "start_error": {
+        "n": 15,
+        "median_signed_s": -0.2,
+        "abs_p50_s": 1.3,
+        "abs_p90_s": 8,
+        "within_tolerance": {
+          "10s": 1,
+          "2s": 0.6,
+          "5s": 0.8
+        }
+      },
+      "end_error": {
+        "n": 15,
+        "median_signed_s": -1.2,
+        "abs_p50_s": 2.9,
+        "abs_p90_s": 19.8,
+        "within_tolerance": {
+          "10s": 0.867,
+          "2s": 0.467,
+          "5s": 0.8
+        }
+      }
+    },
+    "sponsor": {
+      "seconds": {
+        "precision": 0.967,
+        "recall": 0.678,
+        "wrongly_skipped_s": 46.3,
+        "missed_ad_s": 644.2,
+        "predicted_s": 1403.9,
+        "gold_s": 2001.8
+      },
+      "TP": 21,
+      "FP": 4,
+      "FN": 6,
+      "precision": 0.84,
+      "recall": 0.778,
+      "f1": 0.808,
+      "by_confidence": {
+        "high": {
+          "TP": 19,
+          "FP": 3,
+          "precision": 0.864
+        },
+        "medium": {
+          "TP": 2,
+          "FP": 1,
+          "precision": 0.667
+        }
+      },
+      "start_error": {
+        "n": 21,
+        "median_signed_s": 3.2,
+        "abs_p50_s": 3.6,
+        "abs_p90_s": 52.8,
+        "within_tolerance": {
+          "10s": 0.619,
+          "2s": 0.333,
+          "5s": 0.619
+        }
+      },
+      "end_error": {
+        "n": 21,
+        "median_signed_s": -2.5,
+        "abs_p50_s": 4,
+        "abs_p90_s": 23,
+        "within_tolerance": {
+          "10s": 0.667,
+          "2s": 0.143,
+          "5s": 0.571
+        }
+      }
+    }
+  }
+}

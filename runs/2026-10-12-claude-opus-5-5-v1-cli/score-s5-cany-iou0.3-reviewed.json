@@ -7,34 +7,34 @@
     "gold": "reviewed"
   },
   "videos_scored": 18,
-  "predictions_total": 46,
-  "predictions_scored": 43,
-  "reviews_applied": 35,
+  "predictions_total": 45,
+  "predictions_scored": 42,
+  "reviews_applied": 40,
   "gold_segments_merged": {
-    "self_promotion": 23,
-    "sponsor": 29
+    "self_promotion": 24,
+    "sponsor": 27
   },
   "categories": {
     "any_ad": {
       "seconds": {
-        "precision": 0.984,
-        "recall": 0.78,
-        "wrongly_skipped_s": 35.1,
-        "missed_ad_s": 598.2,
-        "predicted_s": 2149.9,
-        "gold_s": 2713
+        "precision": 0.988,
+        "recall": 0.774,
+        "wrongly_skipped_s": 25.6,
+        "missed_ad_s": 616,
+        "predicted_s": 2140.3,
+        "gold_s": 2730.8
       },
       "TP": 39,
-      "FP": 4,
-      "FN": 11,
-      "precision": 0.907,
-      "recall": 0.78,
+      "FP": 3,
+      "FN": 12,
+      "precision": 0.929,
+      "recall": 0.765,
       "f1": 0.839,
       "by_confidence": {
         "high": {
           "TP": 33,
-          "FP": 3,
-          "precision": 0.917
+          "FP": 2,
+          "precision": 0.943
         },
         "low": {
           "TP": 1,
@@ -50,7 +50,7 @@
       "start_error": {
         "n": 39,
         "median_signed_s": 2.7,
-        "abs_p50_s": 3.3,
+        "abs_p50_s": 3.6,
         "abs_p90_s": 20,
         "within_tolerance": {
           "10s": 0.821,
@@ -60,31 +60,31 @@
       },
       "end_error": {
         "n": 39,
-        "median_signed_s": -2.2,
+        "median_signed_s": -2.4,
         "abs_p50_s": 2.4,
         "abs_p90_s": 15.5,
         "within_tolerance": {
           "10s": 0.795,
-          "2s": 0.436,
-          "5s": 0.692
+          "2s": 0.41,
+          "5s": 0.667
         }
       }
     },
     "self_promotion": {
       "seconds": {
         "precision": 0.974,
-        "recall": 0.756,
-        "wrongly_skipped_s": 14.6,
-        "missed_ad_s": 172.8,
+        "recall": 0.736,
+        "wrongly_skipped_s": 14.5,
+        "missed_ad_s": 192.5,
         "predicted_s": 551.1,
-        "gold_s": 709.3
+        "gold_s": 729
       },
       "TP": 16,
       "FP": 2,
-      "FN": 7,
+      "FN": 8,
       "precision": 0.889,
-      "recall": 0.696,
-      "f1": 0.78,
+      "recall": 0.667,
+      "f1": 0.762,
       "by_confidence": {
         "high": {
           "TP": 11,
@@ -116,35 +116,35 @@
       "end_error": {
         "n": 16,
         "median_signed_s": -1.2,
-        "abs_p50_s": 1.2,
+        "abs_p50_s": 1.4,
         "abs_p90_s": 5.8,
         "within_tolerance": {
           "10s": 0.938,
-          "2s": 0.688,
-          "5s": 0.875
+          "2s": 0.625,
+          "5s": 0.813
         }
       }
     },
     "sponsor": {
       "seconds": {
-        "precision": 0.987,
-        "recall": 0.738,
-        "wrongly_skipped_s": 20.6,
-        "missed_ad_s": 559.6,
-        "predicted_s": 1598.9,
-        "gold_s": 2137.8
+        "precision": 0.993,
+        "recall": 0.788,
+        "wrongly_skipped_s": 11,
+        "missed_ad_s": 423.6,
+        "predicted_s": 1589.3,
+        "gold_s": 2001.8
       },
       "TP": 23,
-      "FP": 2,
-      "FN": 6,
-      "precision": 0.92,
-      "recall": 0.793,
-      "f1": 0.852,
+      "FP": 1,
+      "FN": 4,
+      "precision": 0.958,
+      "recall": 0.852,
+      "f1": 0.902,
       "by_confidence": {
         "high": {
           "TP": 22,
-          "FP": 2,
-          "precision": 0.917
+          "FP": 1,
+          "precision": 0.957
         },
         "medium": {
           "TP": 1,
