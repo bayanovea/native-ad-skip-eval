@@ -39,6 +39,8 @@ func main() {
 		err = runScore(os.Args[2:])
 	case "review":
 		err = runReview(os.Args[2:])
+	case "compare":
+		err = runCompare(os.Args[2:])
 	case "-h", "--help", "help":
 		usage()
 		return
@@ -58,8 +60,9 @@ func usage() {
   adskip collapse [-provider main] [-data DIR] [-lang ru] -id NATIVE_ID
   adskip import   [-data DIR] -file GOLD_JSONL
   adskip evalset  heldout | v0 [-data DIR] [-n 10] [-min-contributors 3] [-exclude c2-spike]
-  adskip detect   -set NAME [-model claude-opus-5-5] [-effort medium] [-prompt prompts/v1.md] [-limit N] [-dry-run] [-force] [-data DIR]
+  adskip detect   -set NAME [-model claude-opus-5-5] [-effort medium] [-transport api|cli] [-tag NAME] [-prompt prompts/v1.md] [-limit N] [-dry-run] [-force] [-data DIR]
   adskip score    -run RUN_ID [-min-seconds 5] [-min-confidence low|medium|high] [-iou 0.5] [-gold all|assessor|reviewed] [-list] [-data DIR]
+  adskip compare  -a RUN -b RUN [-iou 0.5] [-min-seconds 5] [-data DIR]
   adskip review   -file VERDICTS_TSV -run RUN_ID -date YYYY-MM-DD [-reviewer NAME] [-data DIR]`)
 }
 

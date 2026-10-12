@@ -23,6 +23,10 @@ type runConfig struct {
 	CreatedAt     string         `json:"created_at"`
 	Model         string         `json:"model"`
 	Effort        string         `json:"effort"`
+	NoTimes       bool           `json:"no_times,omitempty"`
+	WindowSeconds float64        `json:"window_seconds,omitempty"`
+	Transport     string         `json:"transport"`             // api | cli
+	CLIVersion    string         `json:"cli_version,omitempty"` // transport=cli only: the instrument changes with releases
 	PromptVersion string         `json:"prompt_version"`
 	PromptSHA     string         `json:"prompt_sha256"`
 	Evalset       string         `json:"evalset"`
@@ -64,6 +68,10 @@ func runDetect(args []string) error {
 	set := fs.String("set", "", "eval set name under <data>/evalsets (required)")
 	model := fs.String("model", "claude-opus-5-5", "model id")
 	effort := fs.String("effort", "medium", "effort level: low | medium | high")
+	transport := fs.String("transport", "api", "api (Messages API, billed) | cli (`claude -p`, subscription quota; not the same instrument, see README)")
+	noTimes := fs.Bool("no-times", false, "request format: omit cue times (needs a prompt that describes this format)")
+	window := fs.Float64("window", 0, "request format: merge cues into windows of at least this many seconds (0 = off)")
+	tag := fs.String("tag", "", "suffix for the run id, e.g. \"rerun\"; a different tag is a different run")
 	promptPath := fs.String("prompt", "prompts/v1.md", "prompt file; its name is the prompt version")
 	runsDir := fs.String("runs", "runs", "directory for run config and metrics")
 	limit := fs.Int("limit", 0, "stop after N videos (0 = all); for a cheap first try")
@@ -90,20 +98,49 @@ func runDetect(args []string) error {
 	if !ok {
 		fmt.Fprintf(os.Stderr, "warning: no price for %s, cost will be 0\n", *model)
 	}
+	if *transport != "api" && *transport != "cli" {
+		return fmt.Errorf("-transport must be api or cli, got %q", *transport)
+	}
 	runID := fmt.Sprintf("%s-%s-%s", time.Now().UTC().Format("2006-01-02"), *model, prompt.Version)
+	if *transport == "cli" {
+		runID += "-cli"
+	}
+	format := detector.Format{NoTimes: *noTimes, WindowSeconds: *window}
+	if format.NoTimes {
+		runID += "-nt"
+	}
+	if format.WindowSeconds > 0 {
+		runID += fmt.Sprintf("-w%g", format.WindowSeconds)
+	}
+	if *tag != "" {
+		runID += "-" + *tag
+	}
 	cfg := runConfig{
-		ID: runID, CreatedAt: time.Now().UTC().Format(time.RFC3339), Model: *model, Effort: *effort,
+		ID: runID, CreatedAt: time.Now().UTC().Format(time.RFC3339), Model: *model, Effort: *effort, Transport: *transport, NoTimes: format.NoTimes, WindowSeconds: format.WindowSeconds,
 		PromptVersion: prompt.Version, PromptSHA: prompt.SHA, Evalset: *set, Provider: *providerName,
 		Prices: price, MinSegmentSeconds: 5,
 	}
 
 	if *dryRun {
-		return dryRunDetect(cfg, prompt, cacheDir(*data, *providerName), ids)
+		return dryRunDetect(cfg, prompt, format, cacheDir(*data, *providerName), ids)
 	}
 
-	client, err := detector.NewAnthropic(*model, *effort)
-	if err != nil {
-		return err
+	var client detector.Client
+	switch *transport {
+	case "cli":
+		c, err := detector.NewClaudeCLI(*model, *effort)
+		if err != nil {
+			return err
+		}
+		defer c.Close()
+		cfg.CLIVersion = c.Version()
+		client = c
+	default:
+		c, err := detector.NewAnthropic(*model, *effort)
+		if err != nil {
+			return err
+		}
+		client = c
 	}
 	st, err := store.Open(store.Path(*data))
 	if err != nil {
@@ -133,6 +170,7 @@ func runDetect(args []string) error {
 		call := store.Call{RunID: runID, Provider: *providerName, NativeID: id}
 		var preds []store.Prediction
 		meta, cues, err := readTranscript(filepath.Join(cacheDir(*data, *providerName), id+".jsonl"))
+		cues = format.Apply(cues)
 		switch {
 		case err != nil || len(cues) == 0:
 			call.Status = "no_transcript"
@@ -140,7 +178,7 @@ func runDetect(args []string) error {
 				call.Error = err.Error()
 			}
 		default:
-			res, err := client.Detect(ctx, detector.NewRequest(prompt, meta, cues))
+			res, err := client.Detect(ctx, detector.NewRequestFormat(prompt, meta, cues, format))
 			call.InputTokens, call.OutputTokens = res.Usage.InputTokens, res.Usage.OutputTokens
 			call.CacheReadTokens, call.CacheWriteTokens = res.Usage.CacheReadTokens, res.Usage.CacheWriteTokens
 			call.LatencyMS = int(res.Latency / time.Millisecond)
@@ -199,7 +237,7 @@ func runDetect(args []string) error {
 // dryRunDetect prints what a run would send: per-video cue and character
 // counts and a rough token estimate (Cyrillic runs ~2 chars per token on the
 // current tokenizer; count_tokens gives the exact number before a paid run).
-func dryRunDetect(cfg runConfig, prompt detector.Prompt, dir string, ids []string) error {
+func dryRunDetect(cfg runConfig, prompt detector.Prompt, format detector.Format, dir string, ids []string) error {
 	var chars, cues, missing int
 	for _, id := range ids {
 		meta, c, err := readTranscript(filepath.Join(dir, id+".jsonl"))
@@ -208,7 +246,8 @@ func dryRunDetect(cfg runConfig, prompt detector.Prompt, dir string, ids []strin
 			fmt.Printf("%-24s no transcript\n", id)
 			continue
 		}
-		req := detector.NewRequest(prompt, meta, c)
+		c = format.Apply(c)
+		req := detector.NewRequestFormat(prompt, meta, c, format)
 		chars += len(req.User)
 		cues += len(c)
 		fmt.Printf("%-24s %5d cues %7d chars  %s\n", id, len(c), len(req.User), meta.TrackType)
@@ -228,7 +267,7 @@ func resumable(ctx context.Context, st *store.Store, runID string) bool {
 // stop the run; per-video errors (timeouts, refusals) do not.
 func isFatal(msg string) bool {
 	m := strings.ToLower(msg)
-	for _, s := range []string{"401", "403", "authentication", "credit", "billing", "400", "invalid_request", "not implemented"} {
+	for _, s := range []string{"401", "403", "authentication", "credit", "billing", "400", "invalid_request", "not implemented", "limit reached", "usage limit"} {
 		if strings.Contains(m, s) {
 			return true
 		}

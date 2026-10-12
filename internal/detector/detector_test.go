@@ -83,3 +83,26 @@ func TestParseOutputAndCost(t *testing.T) {
 		t.Errorf("cost: want 6, got %v", c)
 	}
 }
+
+func TestFormatNoTimesDropsTimestamps(t *testing.T) {
+	cues := []vtt.Cue{{Start: 1.5, End: 3, Text: "hello"}, {Start: 4, End: 5, Text: "world"}}
+	req := NewRequestFormat(Prompt{Text: "p"}, transcript.Meta{Lang: "ru", Duration: 5}, cues, Format{NoTimes: true})
+	if strings.Contains(req.User, "1.5") || !strings.Contains(req.User, "[1] world\n") {
+		t.Fatalf("unexpected user message:\n%s", req.User)
+	}
+}
+
+func TestFormatApplyMergesIntoWindows(t *testing.T) {
+	cues := []vtt.Cue{
+		{Start: 0, End: 2, Text: "a"}, {Start: 2, End: 4, Text: "b"}, {Start: 4, End: 6, Text: "c"},
+		{Start: 10, End: 11, Text: "d"}, {Start: 11, End: 12, Text: "e"},
+	}
+	got := Format{WindowSeconds: 5}.Apply(cues)
+	// window 1 grows until it spans >= 5 s (a b c = 0..6); window 2 is the rest (d e = 10..12)
+	if len(got) != 2 || got[0].Start != 0 || got[0].End != 6 || got[0].Text != "a b c" || got[1].Start != 10 || got[1].End != 12 {
+		t.Fatalf("got %+v", got)
+	}
+	if same := (Format{}).Apply(cues); len(same) != len(cues) {
+		t.Fatalf("zero Format must not change cues")
+	}
+}

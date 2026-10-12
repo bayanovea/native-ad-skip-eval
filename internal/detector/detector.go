@@ -132,13 +132,51 @@ type Client interface {
 	Model() string
 }
 
-// NewRequest renders a transcript into the user message. Times are printed
-// with one decimal: enough to locate a cue, few enough tokens over ~1,500 cues.
+// Format is how a transcript is shown to the model. The zero value is the v1
+// format: every cue on its own line with times. The other settings are cost
+// levers, each measured as its own run before it becomes a default.
+type Format struct {
+	NoTimes       bool    // omit cue times (the model returns indices and never uses them)
+	WindowSeconds float64 // merge consecutive cues into windows of at least this many seconds; 0 = off
+}
+
+// Apply returns the units the model sees. With windows, one "cue" is a merged
+// window: indices, Validate and Resolve all work on the returned slice, so a
+// segment can only start and end on a window edge.
+func (f Format) Apply(cues []vtt.Cue) []vtt.Cue {
+	if f.WindowSeconds <= 0 || len(cues) == 0 {
+		return cues
+	}
+	var out []vtt.Cue
+	cur := vtt.Cue{Start: cues[0].Start, End: cues[0].End, Text: cues[0].Text}
+	for _, c := range cues[1:] {
+		if cur.End-cur.Start >= f.WindowSeconds {
+			out = append(out, cur)
+			cur = vtt.Cue{Start: c.Start, End: c.End, Text: c.Text}
+			continue
+		}
+		cur.End = c.End
+		cur.Text += " " + c.Text
+	}
+	return append(out, cur)
+}
+
+// NewRequest renders a transcript into the user message in the v1 format.
 func NewRequest(p Prompt, meta transcript.Meta, cues []vtt.Cue) Request {
+	return NewRequestFormat(p, meta, cues, Format{})
+}
+
+// NewRequestFormat renders cues (already passed through Format.Apply) into the
+// user message. Times are printed with one decimal: enough to locate a cue.
+func NewRequestFormat(p Prompt, meta transcript.Meta, cues []vtt.Cue, f Format) Request {
 	var b strings.Builder
 	fmt.Fprintf(&b, "<transcript lang=%q duration=%q>\n", meta.Lang, fmt.Sprintf("%.0f", meta.Duration))
 	for i, c := range cues {
-		fmt.Fprintf(&b, "[%d] %.1f-%.1f: %s\n", i, c.Start, c.End, c.Text)
+		if f.NoTimes {
+			fmt.Fprintf(&b, "[%d] %s\n", i, c.Text)
+		} else {
+			fmt.Fprintf(&b, "[%d] %.1f-%.1f: %s\n", i, c.Start, c.End, c.Text)
+		}
 	}
 	b.WriteString("</transcript>\n")
 	return Request{System: p.Text, User: b.String(), Schema: Schema}
