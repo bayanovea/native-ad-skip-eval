@@ -7,8 +7,8 @@
     "gold": "reviewed"
   },
   "videos_scored": 18,
-  "predictions_total": 57,
-  "predictions_scored": 54,
+  "predictions_total": 56,
+  "predictions_scored": 53,
   "reviews_applied": 35,
   "gold_segments_merged": {
     "self_promotion": 23,
@@ -17,19 +17,19 @@
   "categories": {
     "any_ad": {
       "seconds": {
-        "precision": 0.892,
+        "precision": 0.897,
         "recall": 0.581,
-        "wrongly_skipped_s": 190.7,
+        "wrongly_skipped_s": 181.1,
         "missed_ad_s": 1136.9,
-        "predicted_s": 1766.8,
+        "predicted_s": 1757.2,
         "gold_s": 2713
       },
       "TP": 39,
-      "FP": 15,
+      "FP": 14,
       "FN": 11,
-      "precision": 0.722,
+      "precision": 0.736,
       "recall": 0.78,
-      "f1": 0.75,
+      "f1": 0.757,
       "by_confidence": {
         "high": {
           "TP": 26,
@@ -43,8 +43,8 @@
         },
         "medium": {
           "TP": 12,
-          "FP": 6,
-          "precision": 0.667
+          "FP": 5,
+          "precision": 0.706
         }
       },
       "start_error": {
@@ -127,19 +127,19 @@
     },
     "sponsor": {
       "seconds": {
-        "precision": 0.924,
+        "precision": 0.932,
         "recall": 0.456,
-        "wrongly_skipped_s": 80.4,
+        "wrongly_skipped_s": 70.8,
         "missed_ad_s": 1162.3,
-        "predicted_s": 1055.9,
+        "predicted_s": 1046.3,
         "gold_s": 2137.8
       },
       "TP": 18,
-      "FP": 7,
+      "FP": 6,
       "FN": 11,
-      "precision": 0.72,
+      "precision": 0.75,
       "recall": 0.621,
-      "f1": 0.667,
+      "f1": 0.679,
       "by_confidence": {
         "high": {
           "TP": 14,
@@ -148,8 +148,8 @@
         },
         "medium": {
           "TP": 4,
-          "FP": 2,
-          "precision": 0.667
+          "FP": 1,
+          "precision": 0.8
         }
       },
       "start_error": {
