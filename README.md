@@ -10,7 +10,7 @@ Here lives the **detector**, the **eval harness** that scores it against human l
 prompts, the aggregate numbers, and the write-up. Written in Go. The dataset itself (video ids,
 labels, transcripts, per-video predictions) stays private; see Data policy.
 
-**Status (2026-10-12):** steps 1–4 done. Prompt v1 ran on the 18-video `v0` set with three Claude models; the scorer gives the first numbers below. Next: the human–human ceiling and a blind review (step 5), then prompt v2.
+**Status (2026-10-12, evening):** steps 1–4 done, step 5 partly. Since the first table below: three ways to call the model (API, Batches API, `claude -p`) calibrated against each other, a cheaper request format, a blind review over all runs, a per-video subtitle offset, a time-weighted metric and one headline number. Next: human–human ceiling, thinking on the API, a dev set with at most one video per channel.
 
 ## Why this exists
 
@@ -67,6 +67,38 @@ What the first error analysis changed:
 Per-run aggregates: `runs/<run>/metrics.json` (cost, latency, validity) and
 `runs/<run>/score-<settings>.json` (matching, per-confidence precision, boundary quantiles).
 
+## Update (2026-10-12): cost, transports and one number
+
+The table above was made before three corrections: the review sheet was rebuilt blind over the union of all runs, one video with subtitles ~11 s late got a per-video offset, and category rules were settled (see *Prompts*). It is kept for history; the numbers here supersede it.
+
+**One number.** `SCORE = (ad time removed − 10 × content wrongly removed) / all ad time`, in seconds, under the skip rule of the product (sponsor from medium confidence, self-promotion only at high, at least 5 s), against reviewed gold. 1.0 = every ad second removed and nothing else; 0 = no detector; negative = the detector cuts more content than it saves ads. The factor 10 is the purpose of the system written as arithmetic: the player skips without asking. `adskip score` prints it, `-detail` prints the full table, `adskip rank "label=run,run"` compares variants with the spread of repeated runs.
+
+| Variant (18 videos; n = repeated runs) | SCORE | without the dominant channel (13 videos) | $ / video |
+|---|---|---|---|
+| Opus 5.5, prompt v1 | 0.62 | 0.60 | 0.17 |
+| Sonnet 5.5, v2.1, thinking + high effort (n=3) | 0.51 (0.49–0.53) | 0.44 | ≈0.06 (batch ≈0.03) |
+| Sonnet 5.5, v2.1 (n=2) | 0.45 (0.44–0.45) | 0.39 | 0.054 (batch 0.026) |
+| Sonnet 5.5, v1.1 (n=5) | 0.30 (0.22–0.36) | 0.31 | 0.054 |
+| Haiku 4.5, v1.1 | 0.37 | 0.26 | 0.028 |
+
+Read with care: 18 videos and ~2,700 s of ad; one 300 s block that is found in one run and missed in the next moves a score by ±0.1. Sonnet versions overlap within their own spread; Opus is about twice any of them; thinking is a likely, not a proven, gain.
+
+**Cost per video** (Sonnet, same 18 videos): $0.085 → $0.054 by dropping cue timestamps from the request (the model answers with cue indices and never reads them; −36%, quality inside the noise) → **$0.026** with the Message Batches API (−50%, ~2 minutes for 18 videos). A lever that looked free on segment metrics (8 s windows, −15% more) was rejected after the time-weighted metric showed 4× more content cut by mistake.
+
+**Three ways to call a model, and what each is for.**
+
+| Transport | Flag | Use | Difference |
+|---|---|---|---|
+| Messages API | `-transport api` | headline numbers, latency, exact usage | constrained decoding of the JSON schema |
+| Batches API | `-transport batch` | every offline run; half price | no latency (queue time), resumable by `-batch-id` |
+| `claude -p` | `-transport cli` | experiments and repeats, paid from a subscription quota | schema through a synthetic tool call, no temperature control, CLI version recorded in the run config; harness overhead cut from 28.8k to 419 tokens with flags; thinking off unless `-thinking` |
+
+Calibration on the same videos: Opus gives identical metrics on the API and through `-p`; Sonnet differs by less than two API runs of the same configuration differ from each other.
+
+**Measurement rules learned the hard way.** Run the same setup twice before comparing two setups (the noise floor). Split an aggregate gap per video before explaining it: a gap blamed on the transport was two borderline videos where the model flips between two categories. A review sheet built from one run's errors favours that run; build it blind over the union of runs (`adskip sheet`). Report with and without a channel that dominates the set (`score -exclude-owner`). Subtitle timelines can run late by ~10 s in a video (`adskip offset`). Optimisation decisions, with numbers and the options that were rejected, are kept in a decision log.
+
+**Prompts.** `v1` (timestamps in the request), `v1.1` (indices only), `v2` and `v2.1`: category test is *who paid for this piece* (sponsor = an outside party paid the author; self-promotion = the speaker, their studio or their guest promotes themselves), short promotions are reported and cut by length in code, confidence is independent of length.
+
 ## Pipeline
 
 ```
@@ -106,6 +138,15 @@ YT_DLP=~/Web/tools/ytv/bin/yt-dlp ./adskip fetch -set c2-spike
 # Run the detector over an eval set (paid model calls; `ant auth login` or ANTHROPIC_API_KEY).
 ./adskip detect -set v0 -dry-run                       # sizes and a cost estimate, no calls
 ./adskip detect -set v0 -model claude-opus-5-5 -effort medium
+
+# Other transports and request formats (see the Update section).
+./adskip detect -set v0 -model claude-sonnet-5-5 -transport batch -prompt prompts/v2.1.md -no-times
+./adskip detect -set v0 -model claude-sonnet-5-5 -transport cli   -prompt prompts/v2.1.md -no-times [-thinking -effort high]
+
+# One number per run, and a comparison of variants (repeats give mean and min-max).
+./adskip score -run RUN -iou 0.3 -gold reviewed            # headline; add -detail for the full table
+./adskip rank -exclude-owner OWNER "label=RUN1,RUN2" "other=RUN3"
+./adskip compare -a RUN1 -b RUN2                           # agreement between two runs, no gold needed
 
 # Score a run against the human labels (offline). Thresholds are flags; predictions are stored raw.
 ./adskip score -run 2026-10-11-claude-opus-5-5-v1 -iou 0.3 -min-seconds 5
