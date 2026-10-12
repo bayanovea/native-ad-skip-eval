@@ -41,6 +41,8 @@ func main() {
 		err = runReview(os.Args[2:])
 	case "rank":
 		err = runRank(os.Args[2:])
+	case "ceiling":
+		err = runCeiling(os.Args[2:])
 	case "offset":
 		err = runOffset(os.Args[2:])
 	case "sheet":
@@ -69,6 +71,7 @@ func usage() {
   adskip detect   -set NAME [-model claude-opus-5-5] [-effort medium] [-transport api|cli] [-tag NAME] [-prompt prompts/v1.md] [-limit N] [-dry-run] [-force] [-data DIR]
   adskip score    -run RUN_ID [-min-seconds 5] [-min-confidence low|medium|high] [-iou 0.5] [-gold all|assessor|reviewed] [-list] [-data DIR]
   adskip rank     [-exclude-owner OWNER] [-lambda 10] label=run[,run...] ...
+  adskip ceiling  [-min-contributors 2] [-set NAME]   # human-human ceiling in SCORE
   adskip offset   -id NATIVE_ID -seconds N -date YYYY-MM-DD [-note TEXT] [-data DIR]
   adskip sheet    -runs RUN1,RUN2,... -out PATH.md [-min-seconds 5] [-data DIR]
   adskip compare  -a RUN -b RUN [-iou 0.5] [-min-seconds 5] [-data DIR]

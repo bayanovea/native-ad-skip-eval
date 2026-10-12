@@ -10,15 +10,17 @@ import (
 // VideoStats is what eval-set selection needs to know about a video.
 type VideoStats struct {
 	Provider, NativeID string
-	Assessor           bool // has at least one assessor label
-	Contributors       int  // distinct contributors with live labels
+	Assessor           bool    // has at least one assessor label
+	Contributors       int     // distinct contributors with live labels
+	Duration           float64 // seconds; 0 when unknown
 }
 
 // VideoStatsAll returns one row per video that has labels, sorted by id.
 func (s *Store) VideoStatsAll(ctx context.Context, provider string) ([]VideoStats, error) {
 	rows, err := s.DB.QueryContext(ctx, `
-		SELECT l.native_id, MAX(c.is_assessor), COUNT(DISTINCT l.contributor)
+		SELECT l.native_id, MAX(c.is_assessor), COUNT(DISTINCT l.contributor), COALESCE(MAX(v.duration), 0)
 		FROM labels l JOIN contributors c ON c.id = l.contributor
+		JOIN videos v ON v.provider = l.provider AND v.native_id = l.native_id
 		WHERE l.provider = ?
 		GROUP BY l.native_id ORDER BY l.native_id`, provider)
 	if err != nil {
@@ -29,7 +31,7 @@ func (s *Store) VideoStatsAll(ctx context.Context, provider string) ([]VideoStat
 	for rows.Next() {
 		v := VideoStats{Provider: provider}
 		var assessor int
-		if err := rows.Scan(&v.NativeID, &assessor, &v.Contributors); err != nil {
+		if err := rows.Scan(&v.NativeID, &assessor, &v.Contributors, &v.Duration); err != nil {
 			return nil, err
 		}
 		v.Assessor = assessor == 1
