@@ -75,7 +75,7 @@ func runDetect(args []string) error {
 	batchID := fs.String("batch-id", "", "transport batch: attach to an already submitted batch instead of submitting again")
 	noTimes := fs.Bool("no-times", false, "request format: omit cue times (needs a prompt that describes this format)")
 	window := fs.Float64("window", 0, "request format: merge cues into windows of at least this many seconds (0 = off)")
-	thinking := fs.Bool("thinking", false, "transport cli: keep extended thinking on (off by default, to match the API client)")
+	thinking := fs.Bool("thinking", false, "thinking on: cli keeps it on (off by default there), api/batch send thinking {type: adaptive} (the API default is no thinking output)")
 	tag := fs.String("tag", "", "suffix for the run id, e.g. \"rerun\"; a different tag is a different run")
 	promptPath := fs.String("prompt", "prompts/v1.md", "prompt file; its name is the prompt version")
 	runsDir := fs.String("runs", "runs", "directory for run config and metrics")
@@ -119,9 +119,6 @@ func runDetect(args []string) error {
 		runID += "-nt"
 	}
 	if *thinking {
-		if *transport != "cli" {
-			return fmt.Errorf("-thinking is only wired for -transport cli")
-		}
 		runID += "-think"
 	}
 	if format.WindowSeconds > 0 {
@@ -159,11 +156,17 @@ func runDetect(args []string) error {
 		if err != nil {
 			return err
 		}
+		if *thinking {
+			c.WithThinking()
+		}
 		client, batchClient = c, c
 	default:
 		c, err := detector.NewAnthropic(*model, *effort)
 		if err != nil {
 			return err
+		}
+		if *thinking {
+			c.WithThinking()
 		}
 		client = c
 	}

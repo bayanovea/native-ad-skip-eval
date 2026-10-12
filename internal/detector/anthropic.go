@@ -25,6 +25,9 @@ type Anthropic struct {
 	client anthropic.Client
 	model  string
 	effort string
+	// thinking turns adaptive thinking on. Sonnet 5.5 without the parameter answers
+	// with the JSON only (~200 output tokens per video, measured), so this is a real switch.
+	thinking bool
 }
 
 // NewAnthropic builds a client for one model and effort level. Credentials
@@ -34,6 +37,15 @@ func NewAnthropic(model, effort string) (*Anthropic, error) {
 		return nil, errors.New("model is required")
 	}
 	return &Anthropic{client: anthropic.NewClient(), model: model, effort: effort}, nil
+}
+
+// WithThinking sends thinking: {type: adaptive}. Thinking tokens are billed as output.
+func (a *Anthropic) WithThinking() *Anthropic { a.thinking = true; return a }
+
+// adaptiveThinking is the request value shared by the sync and the batch client;
+// the text is not read, so it is omitted (billing is the same either way).
+func adaptiveThinking() anthropic.ThinkingConfigParamUnion {
+	return anthropic.ThinkingConfigParamUnion{OfAdaptive: &anthropic.ThinkingConfigAdaptiveParam{Display: anthropic.ThinkingConfigAdaptiveDisplayOmitted}}
 }
 
 // Model implements Client.
@@ -62,6 +74,10 @@ func (a *Anthropic) Detect(ctx context.Context, req Request) (Result, error) {
 	// Effort exists on the current Opus/Sonnet generation only; Haiku 4.5 rejects it.
 	if a.effort != "" && !strings.Contains(a.model, "haiku") {
 		params.OutputConfig.Effort = anthropic.OutputConfigEffort(a.effort)
+	}
+
+	if a.thinking {
+		params.Thinking = adaptiveThinking()
 	}
 
 	start := time.Now()

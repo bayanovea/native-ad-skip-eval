@@ -10,7 +10,7 @@ Here lives the **detector**, the **eval harness** that scores it against human l
 prompts, the aggregate numbers, and the write-up. Written in Go. The dataset itself (video ids,
 labels, transcripts, per-video predictions) stays private; see Data policy.
 
-**Status (2026-10-12, evening):** steps 1–4 done, step 5 partly. Since the first table below: three ways to call the model (API, Batches API, `claude -p`) calibrated against each other, a cheaper request format, a blind review over all runs, a per-video subtitle offset, a time-weighted metric and one headline number. Next: human–human ceiling, thinking on the API, a dev set with at most one video per channel.
+**Status (2026-10-12, evening):** steps 1–4 done, step 5 partly. Since the first table below: three ways to call the model (API, Batches API, `claude -p`) calibrated against each other, a cheaper request format, a blind review over all runs, a per-video subtitle offset, a time-weighted metric and one headline number. Thinking was tested on the API as well and rejected (no effect; the gain seen through `claude -p` did not reproduce). Next: human–human ceiling, a dev set with at most one video per channel.
 
 ## Why this exists
 

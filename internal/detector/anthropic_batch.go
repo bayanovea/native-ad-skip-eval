@@ -23,11 +23,12 @@ import (
 // A batch result carries no latency (the time is queue time, not model time),
 // so Result.Latency is zero for this client.
 type AnthropicBatch struct {
-	client  anthropic.Client
-	model   string
-	effort  string
-	mu      sync.Mutex
-	results map[string]batchOutcome
+	client   anthropic.Client
+	model    string
+	effort   string
+	thinking bool
+	mu       sync.Mutex
+	results  map[string]batchOutcome
 }
 
 type batchOutcome struct {
@@ -42,6 +43,9 @@ func NewAnthropicBatch(model, effort string) (*AnthropicBatch, error) {
 	}
 	return &AnthropicBatch{client: anthropic.NewClient(), model: model, effort: effort, results: map[string]batchOutcome{}}, nil
 }
+
+// WithThinking sends thinking: {type: adaptive} on every request of the batch.
+func (b *AnthropicBatch) WithThinking() *AnthropicBatch { b.thinking = true; return b }
 
 // Model implements Client.
 func (b *AnthropicBatch) Model() string { return b.model }
@@ -66,6 +70,9 @@ func (b *AnthropicBatch) Submit(ctx context.Context, reqs []Request) (string, er
 		}
 		if b.effort != "" && !strings.Contains(b.model, "haiku") {
 			p.OutputConfig.Effort = anthropic.OutputConfigEffort(b.effort)
+		}
+		if b.thinking {
+			p.Thinking = adaptiveThinking()
 		}
 		items = append(items, anthropic.MessageBatchNewParamsRequest{CustomID: r.Key, Params: p})
 	}
