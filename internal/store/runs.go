@@ -204,3 +204,30 @@ func (s *Store) Reviews(ctx context.Context) ([]GoldReview, error) {
 	}
 	return out, rows.Err()
 }
+
+// SetOffset records (or replaces) the transcript-minus-player offset of a video.
+func (s *Store) SetOffset(ctx context.Context, provider, nativeID string, offset float64, note, date string) error {
+	_, err := s.DB.ExecContext(ctx, `INSERT INTO video_offsets (provider, native_id, offset_s, note, set_at) VALUES (?, ?, ?, ?, ?)
+		ON CONFLICT (provider, native_id) DO UPDATE SET offset_s = excluded.offset_s, note = excluded.note, set_at = excluded.set_at`,
+		provider, nativeID, offset, nullS(note), date)
+	return err
+}
+
+// Offsets returns the offsets keyed by "provider:native_id".
+func (s *Store) Offsets(ctx context.Context) (map[string]float64, error) {
+	rows, err := s.DB.QueryContext(ctx, `SELECT provider, native_id, offset_s FROM video_offsets`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	out := map[string]float64{}
+	for rows.Next() {
+		var p, id string
+		var off float64
+		if err := rows.Scan(&p, &id, &off); err != nil {
+			return nil, err
+		}
+		out[p+":"+id] = off
+	}
+	return out, rows.Err()
+}

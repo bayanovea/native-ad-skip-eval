@@ -54,6 +54,10 @@ func runSheet(args []string) error {
 		run, cat string
 		span
 	}
+	offsets, err := st.Offsets(ctx)
+	if err != nil {
+		return err
+	}
 	byVideo := map[string][]flag1{}
 	for _, r := range runs {
 		ok, err := okSet(ctx, st, r)
@@ -66,7 +70,8 @@ func runSheet(args []string) error {
 		}
 		for _, p := range ps {
 			if ok[p.NativeID] && p.End-p.Start >= *minSec {
-				byVideo[p.NativeID] = append(byVideo[p.NativeID], flag1{r, p.Category, span{p.Start, p.End}})
+				off := offsets[p.Provider+":"+p.NativeID]
+				byVideo[p.NativeID] = append(byVideo[p.NativeID], flag1{r, p.Category, span{p.Start - off, p.End - off}})
 			}
 		}
 	}
@@ -144,7 +149,7 @@ func runSheet(args []string) error {
 	key.WriteString("item\tnative_id\tstart\tend\tcategories\truns_flagging\n")
 	for i, it := range items {
 		n := fmt.Sprintf("C%d", i+1)
-		cues, err := cueText(*data, *providerName, it.video, it.start, it.end)
+		cues, err := cueText(*data, *providerName, it.video, it.start, it.end, offsets[*providerName+":"+it.video])
 		if err != nil {
 			return err
 		}
@@ -189,15 +194,16 @@ func joinKeys(m map[string]bool, sep string) string {
 	return strings.Join(ks, sep)
 }
 
-// cueText returns the transcript text inside [start, end], capped for readability.
-func cueText(data, provider, id string, start, end float64) (string, error) {
+// cueText returns the transcript text inside [start, end] (player time; offset is
+// transcript minus player time), capped for readability.
+func cueText(data, provider, id string, start, end, offset float64) (string, error) {
 	_, cues, err := readTranscript(filepath.Join(cacheDir(data, provider), id+".jsonl"))
 	if err != nil {
 		return "", err
 	}
 	var parts []string
 	for _, c := range cues {
-		if c.End > start && c.Start < end {
+		if c.End-offset > start && c.Start-offset < end {
 			parts = append(parts, c.Text)
 		}
 	}

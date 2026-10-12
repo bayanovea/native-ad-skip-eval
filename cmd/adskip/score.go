@@ -28,6 +28,7 @@ func runScore(args []string) error {
 	minConf := fs.String("min-confidence", "", "drop predictions below this confidence: low, medium or high ('' = keep all)")
 	iou := fs.Float64("iou", 0.5, "minimum intersection-over-union for a hit")
 	goldMode := fs.String("gold", "all", "which human labels count: all | assessor | reviewed (all + eye-check verdicts applied)")
+	noOffsets := fs.Bool("no-offsets", false, "ignore per-video timeline offsets (video_offsets)")
 	list := fs.Bool("list", false, "print false positives and misses with video ids to stdout (private)")
 	if err := fs.Parse(args); err != nil {
 		return err
@@ -88,13 +89,21 @@ func runScore(args []string) error {
 	if err != nil {
 		return err
 	}
+	offsets, err := st.Offsets(ctx)
+	if err != nil {
+		return err
+	}
+	if *noOffsets {
+		offsets = nil
+	}
 	var preds []score.Pred
 	for _, p := range rawPreds {
 		key := p.Provider + ":" + p.NativeID
 		if !okVideo[key] {
 			continue // predictions of a call that later failed validation are not scored
 		}
-		preds = append(preds, score.Pred{Video: key, Category: p.Category, Start: p.Start, End: p.End, Confidence: p.Confidence})
+		off := offsets[key] // transcript time minus player time; 0 when unknown
+		preds = append(preds, score.Pred{Video: key, Category: p.Category, Start: p.Start - off, End: p.End - off, Confidence: p.Confidence})
 	}
 
 	reviewsApplied := 0

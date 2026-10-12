@@ -7,21 +7,21 @@
     "gold": "reviewed"
   },
   "videos_scored": 17,
-  "predictions_total": 47,
-  "predictions_scored": 46,
-  "reviews_applied": 22,
+  "predictions_total": 46,
+  "predictions_scored": 45,
+  "reviews_applied": 34,
   "gold_segments_merged": {
-    "self_promotion": 18,
+    "self_promotion": 22,
     "sponsor": 29
   },
   "categories": {
     "any_ad": {
-      "TP": 35,
-      "FP": 11,
-      "FN": 10,
-      "precision": 0.761,
-      "recall": 0.778,
-      "f1": 0.769,
+      "TP": 36,
+      "FP": 9,
+      "FN": 13,
+      "precision": 0.8,
+      "recall": 0.735,
+      "f1": 0.766,
       "by_confidence": {
         "high": {
           "TP": 26,
@@ -34,40 +34,40 @@
           "precision": 0.5
         },
         "medium": {
-          "TP": 8,
-          "FP": 6,
-          "precision": 0.571
+          "TP": 9,
+          "FP": 4,
+          "precision": 0.692
         }
       },
       "start_error": {
-        "n": 35,
-        "median_signed_s": 0.7,
+        "n": 36,
+        "median_signed_s": 1.4,
         "abs_p50_s": 2.2,
         "abs_p90_s": 41.8,
         "within_tolerance": {
-          "10s": 0.8,
-          "2s": 0.486,
-          "5s": 0.8
+          "10s": 0.806,
+          "2s": 0.472,
+          "5s": 0.778
         }
       },
       "end_error": {
-        "n": 35,
+        "n": 36,
         "median_signed_s": -2.4,
-        "abs_p50_s": 4,
+        "abs_p50_s": 3.6,
         "abs_p90_s": 25.4,
         "within_tolerance": {
-          "10s": 0.771,
-          "2s": 0.171,
-          "5s": 0.571
+          "10s": 0.75,
+          "2s": 0.222,
+          "5s": 0.611
         }
       }
     },
     "self_promotion": {
-      "TP": 12,
-      "FP": 6,
-      "FN": 6,
-      "precision": 0.667,
-      "recall": 0.667,
+      "TP": 13,
+      "FP": 4,
+      "FN": 9,
+      "precision": 0.765,
+      "recall": 0.591,
       "f1": 0.667,
       "by_confidence": {
         "high": {
@@ -81,41 +81,41 @@
           "precision": 0.5
         },
         "medium": {
-          "TP": 5,
-          "FP": 4,
-          "precision": 0.556
+          "TP": 6,
+          "FP": 2,
+          "precision": 0.75
         }
       },
       "start_error": {
-        "n": 12,
-        "median_signed_s": -0.4,
-        "abs_p50_s": 1,
-        "abs_p90_s": 3.3,
+        "n": 13,
+        "median_signed_s": 0,
+        "abs_p50_s": 1.4,
+        "abs_p90_s": 4.1,
         "within_tolerance": {
           "10s": 1,
-          "2s": 0.583,
-          "5s": 1
+          "2s": 0.538,
+          "5s": 0.923
         }
       },
       "end_error": {
-        "n": 12,
+        "n": 13,
         "median_signed_s": -1.2,
-        "abs_p50_s": 3,
+        "abs_p50_s": 2.4,
         "abs_p90_s": 28.6,
         "within_tolerance": {
-          "10s": 0.833,
-          "2s": 0.25,
-          "5s": 0.667
+          "10s": 0.846,
+          "2s": 0.385,
+          "5s": 0.692
         }
       }
     },
     "sponsor": {
-      "TP": 22,
-      "FP": 6,
-      "FN": 7,
-      "precision": 0.786,
-      "recall": 0.759,
-      "f1": 0.772,
+      "TP": 21,
+      "FP": 7,
+      "FN": 8,
+      "precision": 0.75,
+      "recall": 0.724,
+      "f1": 0.737,
       "by_confidence": {
         "high": {
           "TP": 19,
@@ -123,31 +123,31 @@
           "precision": 0.826
         },
         "medium": {
-          "TP": 3,
-          "FP": 2,
-          "precision": 0.6
+          "TP": 2,
+          "FP": 3,
+          "precision": 0.4
         }
       },
       "start_error": {
-        "n": 22,
+        "n": 21,
         "median_signed_s": 2.4,
-        "abs_p50_s": 2.4,
+        "abs_p50_s": 3.2,
         "abs_p90_s": 43.3,
         "within_tolerance": {
-          "10s": 0.682,
-          "2s": 0.409,
-          "5s": 0.682
+          "10s": 0.667,
+          "2s": 0.381,
+          "5s": 0.667
         }
       },
       "end_error": {
-        "n": 22,
+        "n": 21,
         "median_signed_s": -4.1,
         "abs_p50_s": 4.1,
         "abs_p90_s": 24,
         "within_tolerance": {
-          "10s": 0.727,
-          "2s": 0.136,
-          "5s": 0.5
+          "10s": 0.667,
+          "2s": 0.095,
+          "5s": 0.524
         }
       }
     }

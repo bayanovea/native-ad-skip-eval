@@ -99,3 +99,17 @@ CREATE TABLE IF NOT EXISTS gold_reviews (
 );
 CREATE UNIQUE INDEX IF NOT EXISTS gold_reviews_unique
     ON gold_reviews (provider, native_id, category, start, "end", verdict, source_run);
+
+-- Per-video timeline correction. offset_s = transcript time minus player time:
+-- positive means the subtitles run late (a phrase heard at 10:00 is stamped
+-- 10:11). Predictions are shifted back by it before they meet player-time gold.
+-- Only set with human evidence (a person compared text and player); the
+-- scorer and the review-sheet builder apply it, raw predictions stay raw.
+CREATE TABLE IF NOT EXISTS video_offsets (
+    provider  TEXT NOT NULL,
+    native_id TEXT NOT NULL,
+    offset_s  REAL NOT NULL,
+    note      TEXT,
+    set_at    TEXT NOT NULL,
+    PRIMARY KEY (provider, native_id)
+);
