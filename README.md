@@ -26,7 +26,7 @@ Every change to the prompt or the model gets a before/after number in `runs/`.
 ## Results so far
 
 Eval set `v0`: 20 videos (10 labelled by assessors, 10 by several ordinary contributors), 18 with
-subtitles, 2.5 h to 1.9 h long, 39 human sponsor and 13 self-promotion intervals. Prompt `v1`,
+subtitles, 28 min to 1.9 h long (~13 h of video), 39 human sponsor and 13 self-promotion intervals. Prompt `v1`,
 one call per video, scored at **IoU ≥ 0.3** after dropping predictions under 5 s. "Raw gold" is the
 human labels as exported. "Reviewed gold" is the same labels after one person checked every
 disagreement of the Opus run (23 items: 11 ads the humans had not labelled, 4 labels that were not
