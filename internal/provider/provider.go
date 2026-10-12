@@ -18,6 +18,9 @@ type Provider interface {
 	Name() string
 	// VideoURL builds the page URL yt-dlp is pointed at.
 	VideoURL(nativeID string) string
+	// LinkAt builds the link a person opens in a browser to watch from a given
+	// second (review sheets). It may differ from VideoURL, which targets yt-dlp.
+	LinkAt(nativeID string, seconds int) string
 	// PickTrack chooses the subtitle track to download for lang from the yt-dlp
 	// listing. auto reports whether it lives under automatic_captions (selects
 	// --write-auto-subs); ok is false when the video has no usable track.

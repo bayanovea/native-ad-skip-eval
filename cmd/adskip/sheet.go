@@ -11,6 +11,7 @@ import (
 	"sort"
 	"strings"
 
+	"ad-skip-segment-eval/internal/provider"
 	"ad-skip-segment-eval/internal/score"
 	"ad-skip-segment-eval/internal/store"
 )
@@ -30,7 +31,7 @@ import (
 func runSheet(args []string) error {
 	fs := flag.NewFlagSet("sheet", flag.ContinueOnError)
 	data := fs.String("data", defaultDataDir(), "private data root")
-	provider := fs.String("provider", "main", "video platform")
+	providerName := fs.String("provider", "main", "video platform")
 	runsFlag := fs.String("runs", "", "comma-separated run ids (required)")
 	out := fs.String("out", "", "output .md path, outside the repo (required)")
 	minSec := fs.Float64("min-seconds", 5, "ignore predictions shorter than this")
@@ -82,7 +83,7 @@ func runSheet(args []string) error {
 	}
 	var items []item
 	for id, fl := range byVideo {
-		labels, err := st.Labels(ctx, *provider, id)
+		labels, err := st.Labels(ctx, *providerName, id)
 		if err != nil {
 			return err
 		}
@@ -134,16 +135,20 @@ func runSheet(args []string) error {
 		return shuffleKey(items[i].video, items[i].start) < shuffleKey(items[j].video, items[j].start)
 	})
 
+	prov, err := provider.Lookup(*providerName)
+	if err != nil {
+		return err
+	}
 	var md, key strings.Builder
 	fmt.Fprintf(&md, "# Blind review sheet (private, not in the repo)\n\nFor every item, write one verdict: **sponsor** / **self_promotion** / **not an ad** / **unclear** (+ one line why).\nThe stretch was flagged by at least one automatic detector run and is not covered by any human label or earlier verdict. The source is hidden on purpose. Times are player times.\n\n")
 	key.WriteString("item\tnative_id\tstart\tend\tcategories\truns_flagging\n")
 	for i, it := range items {
 		n := fmt.Sprintf("C%d", i+1)
-		cues, err := cueText(*data, *provider, it.video, it.start, it.end)
+		cues, err := cueText(*data, *providerName, it.video, it.start, it.end)
 		if err != nil {
 			return err
 		}
-		fmt.Fprintf(&md, "### %s. %s · %s – %s (%.0f s)\n\nProposed as: %s\n\n> %s\n\nVerdict: \n\n", n, it.video, clock(it.start), clock(it.end), it.end-it.start, joinKeys(it.cats, " / "), cues)
+		fmt.Fprintf(&md, "### %s. %s · %s – %s (%.0f s)\n\nProposed as: %s\n\nLink: %s\n\n> %s\n\nVerdict: \n\n", n, it.video, clock(it.start), clock(it.end), it.end-it.start, joinKeys(it.cats, " / "), prov.LinkAt(it.video, int(it.start)-2), cues)
 		fmt.Fprintf(&key, "%s\t%s\t%.1f\t%.1f\t%s\t%s\n", n, it.video, it.start, it.end, joinKeys(it.cats, "+"), joinKeys(it.runs, ","))
 	}
 	if err := os.MkdirAll(filepath.Dir(*out), 0o755); err != nil {

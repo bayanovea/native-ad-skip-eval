@@ -1,6 +1,7 @@
 package provider
 
 import (
+	"fmt"
 	"strings"
 
 	"ad-skip-segment-eval/internal/transcript"
@@ -14,6 +15,21 @@ func init() { Register(platform{}) }
 
 func (platform) Name() string                    { return "main" }
 func (platform) VideoURL(nativeID string) string { return "https://example.invalid/video/" + nativeID }
+
+// LinkAt is the player link with the start offset as ?t=1h2m3s.
+func (platform) LinkAt(nativeID string, seconds int) string {
+	if seconds < 0 {
+		seconds = 0
+	}
+	h, m, s := seconds/3600, seconds%3600/60, seconds%60
+	t := fmt.Sprintf("%dm%ds", m, s)
+	if h > 0 {
+		t = fmt.Sprintf("%dh%s", h, t)
+	} else if m == 0 {
+		t = fmt.Sprintf("%ds", s)
+	}
+	return fmt.Sprintf("https://example.invalid/watch/%s?t=%s", nativeID, t)
+}
 
 // PickTrack prefers an author-uploaded track and falls back to auto-subtitles.
 //

@@ -1,0 +1,20 @@
+{
+  "id": "2026-10-12-claude-haiku-4-5-v1.1-cli-nt",
+  "created_at": "2026-10-12T09:58:08Z",
+  "model": "claude-haiku-4-5",
+  "effort": "medium",
+  "no_times": true,
+  "transport": "cli",
+  "cli_version": "2.1.285 (Claude Code)",
+  "prompt_version": "v1.1",
+  "prompt_sha256": "752fe9071d8721dbb9eff8131f4e92b007ca2cce2d9e4b84e55fc69a754cd9f6",
+  "evalset": "v0",
+  "provider": "main",
+  "prices_usd_per_mtok": {
+    "Input": 1,
+    "Output": 5,
+    "CacheRead": 0.1,
+    "CacheWrite": 1.25
+  },
+  "min_segment_seconds_for_scoring": 5
+}
