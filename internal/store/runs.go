@@ -155,3 +155,52 @@ func (s *Store) Labels(ctx context.Context, provider, nativeID string) ([]Labele
 	}
 	return out, rows.Err()
 }
+
+// GoldReview is a row of gold_reviews.
+type GoldReview struct {
+	Provider, NativeID, Category    string
+	Start, End                      float64
+	Verdict, Item, Note             string
+	Reviewer, ReviewedAt, SourceRun string
+}
+
+// ImportReviews inserts verdicts; identical rows are skipped, so a sheet can
+// be imported twice. Returns the number inserted.
+func (s *Store) ImportReviews(ctx context.Context, rs []GoldReview) (int, error) {
+	tx, err := s.DB.BeginTx(ctx, nil)
+	if err != nil {
+		return 0, err
+	}
+	defer tx.Rollback()
+	n := 0
+	for _, r := range rs {
+		res, err := tx.ExecContext(ctx, `INSERT OR IGNORE INTO gold_reviews (provider, native_id, category, start, "end", verdict, item, note, reviewer, reviewed_at, source_run)
+			VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, r.Provider, r.NativeID, r.Category, r.Start, r.End, r.Verdict, r.Item, nullS(r.Note), r.Reviewer, r.ReviewedAt, r.SourceRun)
+		if err != nil {
+			return n, fmt.Errorf("review %s: %w", r.Item, err)
+		}
+		if k, _ := res.RowsAffected(); k > 0 {
+			n++
+		}
+	}
+	return n, tx.Commit()
+}
+
+// Reviews returns every stored verdict.
+func (s *Store) Reviews(ctx context.Context) ([]GoldReview, error) {
+	rows, err := s.DB.QueryContext(ctx, `SELECT provider, native_id, category, start, "end", verdict, item, COALESCE(note, ''), reviewer, reviewed_at, source_run
+		FROM gold_reviews ORDER BY provider, native_id, start`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []GoldReview
+	for rows.Next() {
+		var r GoldReview
+		if err := rows.Scan(&r.Provider, &r.NativeID, &r.Category, &r.Start, &r.End, &r.Verdict, &r.Item, &r.Note, &r.Reviewer, &r.ReviewedAt, &r.SourceRun); err != nil {
+			return nil, err
+		}
+		out = append(out, r)
+	}
+	return out, rows.Err()
+}

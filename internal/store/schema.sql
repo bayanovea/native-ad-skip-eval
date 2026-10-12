@@ -80,3 +80,22 @@ CREATE TABLE IF NOT EXISTS predictions (
     quote_ok    INTEGER NOT NULL DEFAULT 1
 );
 CREATE INDEX IF NOT EXISTS predictions_run_video ON predictions (run_id, provider, native_id);
+
+-- Human verdicts on run/gold disagreements (an eye check). Raw labels are
+-- never edited; the scorer applies these on top when asked (-gold reviewed).
+CREATE TABLE IF NOT EXISTS gold_reviews (
+    id          INTEGER PRIMARY KEY,
+    provider    TEXT NOT NULL,
+    native_id   TEXT NOT NULL,
+    category    TEXT NOT NULL,
+    start       REAL NOT NULL,
+    "end"       REAL NOT NULL,
+    verdict     TEXT NOT NULL,       -- gold_missing | gold_wrong | definition_unclear | model_wrong | gold_valid
+    item        TEXT NOT NULL,       -- sheet item id, e.g. A3
+    note        TEXT,
+    reviewer    TEXT NOT NULL,
+    reviewed_at TEXT NOT NULL,       -- date of the sheet
+    source_run  TEXT NOT NULL        -- run the sheet was built from
+);
+CREATE UNIQUE INDEX IF NOT EXISTS gold_reviews_unique
+    ON gold_reviews (provider, native_id, category, start, "end", verdict, source_run);

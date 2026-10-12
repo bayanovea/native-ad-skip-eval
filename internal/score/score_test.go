@@ -121,3 +121,36 @@ func TestIoU(t *testing.T) {
 		}
 	}
 }
+
+func TestApplyReviews(t *testing.T) {
+	golds := []Gold{
+		{Video: v, Category: "sponsor", Start: 0, End: 30},        // gold_wrong: removed
+		{Video: v, Category: "sponsor", Start: 100, End: 160},     // untouched
+		{Video: v, Category: "sponsor", Start: 500, End: 560},     // definition_unclear: removed
+		{Video: v, Category: "self_promotion", Start: 5, End: 25}, // other category: untouched
+	}
+	preds := []Pred{
+		{Video: v, Category: "sponsor", Start: 505, End: 555, Confidence: "high"},        // definition_unclear: removed
+		{Video: v, Category: "self_promotion", Start: 900, End: 930, Confidence: "high"}, // gold_missing: now a hit
+	}
+	reviews := []Review{
+		{Video: v, Category: "sponsor", Start: 0, End: 31, Verdict: VerdictGoldWrong, Item: "B2"},
+		{Video: v, Category: "sponsor", Start: 500, End: 560, Verdict: VerdictDefinitionUnclear, Item: "B7"},
+		{Video: v, Category: "self_promotion", Start: 900, End: 930, Verdict: VerdictGoldMissing, Item: "A3"},
+		{Video: v, Category: "sponsor", Start: 100, End: 160, Verdict: VerdictModelWrong, Item: "B1"},
+	}
+	g, p := ApplyReviews(golds, preds, reviews)
+	if len(g) != 3 {
+		t.Fatalf("gold after reviews = %d, want 3: %+v", len(g), g)
+	}
+	if len(p) != 1 || p[0].Start != 900 {
+		t.Fatalf("preds after reviews = %+v, want only the 900-930 one", p)
+	}
+	res := Score(g, p, Options{IoU: 0.3})
+	if res.ByCategory["self_promotion"] != (Counts{TP: 1, FN: 1}) { // the untouched 5-25 label stays a miss
+		t.Errorf("self_promotion = %+v, want TP1 after gold_missing", res.ByCategory["self_promotion"])
+	}
+	if res.ByCategory["sponsor"] != (Counts{FN: 1}) {
+		t.Errorf("sponsor = %+v, want only the untouched 100-160 miss", res.ByCategory["sponsor"])
+	}
+}

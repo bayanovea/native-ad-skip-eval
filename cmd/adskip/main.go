@@ -6,6 +6,7 @@
 //	adskip evalset  heldout | v0        # eval-set files from the store (offline)
 //	adskip detect   -set v0 -model ...  # transcripts -> predictions (model calls, paid)
 //	adskip score    -run <id>           # predictions vs gold -> runs/<id>/score-*.json (offline)
+//	adskip review   -file <tsv> -run .. # eye-check verdicts -> gold_reviews (offline)
 //
 // All private data (eval sets, subtitle cache, transcripts) lives under the data
 // root (-data, default ~/Web/data), outside the repository.
@@ -36,6 +37,8 @@ func main() {
 		err = runDetect(os.Args[2:])
 	case "score":
 		err = runScore(os.Args[2:])
+	case "review":
+		err = runReview(os.Args[2:])
 	case "-h", "--help", "help":
 		usage()
 		return
@@ -56,7 +59,8 @@ func usage() {
   adskip import   [-data DIR] -file GOLD_JSONL
   adskip evalset  heldout | v0 [-data DIR] [-n 10] [-min-contributors 3] [-exclude c2-spike]
   adskip detect   -set NAME [-model claude-opus-5-5] [-effort medium] [-prompt prompts/v1.md] [-limit N] [-dry-run] [-force] [-data DIR]
-  adskip score    -run RUN_ID [-min-seconds 5] [-min-confidence low|medium|high] [-iou 0.5] [-gold all|assessor] [-list] [-data DIR]`)
+  adskip score    -run RUN_ID [-min-seconds 5] [-min-confidence low|medium|high] [-iou 0.5] [-gold all|assessor|reviewed] [-list] [-data DIR]
+  adskip review   -file VERDICTS_TSV -run RUN_ID -date YYYY-MM-DD [-reviewer NAME] [-data DIR]`)
 }
 
 // defaultDataDir is the private data root: $ADSKIP_DATA or ~/Web/data.

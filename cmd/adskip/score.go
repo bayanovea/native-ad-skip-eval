@@ -27,7 +27,7 @@ func runScore(args []string) error {
 	minSeconds := fs.Float64("min-seconds", 5, "drop predictions shorter than this")
 	minConf := fs.String("min-confidence", "", "drop predictions below this confidence: low, medium or high ('' = keep all)")
 	iou := fs.Float64("iou", 0.5, "minimum intersection-over-union for a hit")
-	goldMode := fs.String("gold", "all", "which human labels count: all | assessor")
+	goldMode := fs.String("gold", "all", "which human labels count: all | assessor | reviewed (all + eye-check verdicts applied)")
 	list := fs.Bool("list", false, "print false positives and misses with video ids to stdout (private)")
 	if err := fs.Parse(args); err != nil {
 		return err
@@ -35,8 +35,8 @@ func runScore(args []string) error {
 	if *runID == "" {
 		return fmt.Errorf("-run is required")
 	}
-	if *goldMode != "all" && *goldMode != "assessor" {
-		return fmt.Errorf("-gold must be all or assessor")
+	if *goldMode != "all" && *goldMode != "assessor" && *goldMode != "reviewed" {
+		return fmt.Errorf("-gold must be all, assessor or reviewed")
 	}
 	runDir := filepath.Join("runs", *runID)
 	if _, err := os.Stat(runDir); err != nil {
@@ -97,13 +97,31 @@ func runScore(args []string) error {
 		preds = append(preds, score.Pred{Video: key, Category: p.Category, Start: p.Start, End: p.End, Confidence: p.Confidence})
 	}
 
+	reviewsApplied := 0
+	if *goldMode == "reviewed" {
+		stored, err := st.Reviews(ctx)
+		if err != nil {
+			return err
+		}
+		var reviews []score.Review
+		for _, r := range stored {
+			if key := r.Provider + ":" + r.NativeID; okVideo[key] {
+				reviews = append(reviews, score.Review{Video: key, Category: r.Category, Start: r.Start, End: r.End, Verdict: r.Verdict, Item: r.Item, Note: r.Note})
+			}
+		}
+		if len(reviews) == 0 {
+			return fmt.Errorf("-gold reviewed: no stored verdicts for this run's videos (adskip review)")
+		}
+		golds, preds = score.ApplyReviews(golds, preds, reviews)
+		reviewsApplied = len(reviews)
+	}
 	opt := score.Options{MinSeconds: *minSeconds, MinConfidence: *minConf, IoU: *iou}
 	res := score.Score(golds, preds, opt)
 
 	tag := fmt.Sprintf("s%g-c%s-iou%g-%s", *minSeconds, orDefault(*minConf, "any"), *iou, *goldMode)
 	out := scoreFile{
 		Run: *runID, Settings: scoreSettings{MinSeconds: *minSeconds, MinConfidence: orDefault(*minConf, "any"), IoU: *iou, Gold: *goldMode},
-		VideosScored: scored, PredsTotal: res.PredsTotal, PredsScored: res.PredsScored,
+		VideosScored: scored, PredsTotal: res.PredsTotal, PredsScored: res.PredsScored, ReviewsApplied: reviewsApplied,
 		GoldMerged: res.GoldMerged, Categories: map[string]catMetrics{},
 	}
 	for cat, c := range res.ByCategory {
@@ -162,13 +180,14 @@ type catMetrics struct {
 }
 
 type scoreFile struct {
-	Run          string                `json:"run"`
-	Settings     scoreSettings         `json:"settings"`
-	VideosScored int                   `json:"videos_scored"`
-	PredsTotal   int                   `json:"predictions_total"`
-	PredsScored  int                   `json:"predictions_scored"`
-	GoldMerged   map[string]int        `json:"gold_segments_merged"`
-	Categories   map[string]catMetrics `json:"categories"`
+	Run            string                `json:"run"`
+	Settings       scoreSettings         `json:"settings"`
+	VideosScored   int                   `json:"videos_scored"`
+	PredsTotal     int                   `json:"predictions_total"`
+	PredsScored    int                   `json:"predictions_scored"`
+	ReviewsApplied int                   `json:"reviews_applied"`
+	GoldMerged     map[string]int        `json:"gold_segments_merged"`
+	Categories     map[string]catMetrics `json:"categories"`
 }
 
 func toBoundary(q score.Quantiles) boundaryMetrics {
