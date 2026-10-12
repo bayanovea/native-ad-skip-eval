@@ -1,0 +1,22 @@
+{
+  "id": "2026-10-12-claude-sonnet-5-5-v2.1-cli-nt-think-rerun",
+  "created_at": "2026-10-12T12:59:41Z",
+  "model": "claude-sonnet-5-5",
+  "effort": "high",
+  "thinking": true,
+  "no_times": true,
+  "transport": "cli",
+  "price_factor": 1,
+  "cli_version": "2.1.285 (Claude Code)",
+  "prompt_version": "v2.1",
+  "prompt_sha256": "96d92aeb9eac36cc99334dad6378dc9ce49c82e619802b3ba8fe5dc0a3398497",
+  "evalset": "v0",
+  "provider": "main",
+  "prices_usd_per_mtok": {
+    "Input": 2,
+    "Output": 10,
+    "CacheRead": 0.2,
+    "CacheWrite": 2.5
+  },
+  "min_segment_seconds_for_scoring": 5
+}
