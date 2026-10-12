@@ -101,6 +101,9 @@ type Request struct {
 	System string
 	User   string
 	Schema string
+	// Key identifies the request to a client that answers in bulk (the batch
+	// client matches results by it). Single-call clients ignore it.
+	Key string
 }
 
 // Usage is what the API reports for one call. Cache fields are zero for a

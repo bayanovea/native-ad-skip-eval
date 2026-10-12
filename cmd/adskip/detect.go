@@ -25,7 +25,9 @@ type runConfig struct {
 	Effort        string         `json:"effort"`
 	NoTimes       bool           `json:"no_times,omitempty"`
 	WindowSeconds float64        `json:"window_seconds,omitempty"`
-	Transport     string         `json:"transport"`             // api | cli
+	Transport     string         `json:"transport"`              // api | cli | batch
+	PriceFactor   float64        `json:"price_factor,omitempty"` // 0.5 for batch: the Batches API bills half
+	BatchID       string         `json:"batch_id,omitempty"`
 	CLIVersion    string         `json:"cli_version,omitempty"` // transport=cli only: the instrument changes with releases
 	PromptVersion string         `json:"prompt_version"`
 	PromptSHA     string         `json:"prompt_sha256"`
@@ -68,7 +70,8 @@ func runDetect(args []string) error {
 	set := fs.String("set", "", "eval set name under <data>/evalsets (required)")
 	model := fs.String("model", "claude-opus-5-5", "model id")
 	effort := fs.String("effort", "medium", "effort level: low | medium | high")
-	transport := fs.String("transport", "api", "api (Messages API, billed) | cli (`claude -p`, subscription quota; not the same instrument, see README)")
+	transport := fs.String("transport", "api", "api (Messages API, billed) | batch (Message Batches API, billed at half, asynchronous) | cli (`claude -p`, subscription quota; not the same instrument, see README)")
+	batchID := fs.String("batch-id", "", "transport batch: attach to an already submitted batch instead of submitting again")
 	noTimes := fs.Bool("no-times", false, "request format: omit cue times (needs a prompt that describes this format)")
 	window := fs.Float64("window", 0, "request format: merge cues into windows of at least this many seconds (0 = off)")
 	tag := fs.String("tag", "", "suffix for the run id, e.g. \"rerun\"; a different tag is a different run")
@@ -98,12 +101,16 @@ func runDetect(args []string) error {
 	if !ok {
 		fmt.Fprintf(os.Stderr, "warning: no price for %s, cost will be 0\n", *model)
 	}
-	if *transport != "api" && *transport != "cli" {
-		return fmt.Errorf("-transport must be api or cli, got %q", *transport)
+	if *transport != "api" && *transport != "cli" && *transport != "batch" {
+		return fmt.Errorf("-transport must be api, cli or batch, got %q", *transport)
+	}
+	priceFactor := 1.0
+	if *transport == "batch" {
+		priceFactor = 0.5
 	}
 	runID := fmt.Sprintf("%s-%s-%s", time.Now().UTC().Format("2006-01-02"), *model, prompt.Version)
-	if *transport == "cli" {
-		runID += "-cli"
+	if *transport == "cli" || *transport == "batch" {
+		runID += "-" + *transport
 	}
 	format := detector.Format{NoTimes: *noTimes, WindowSeconds: *window}
 	if format.NoTimes {
@@ -116,7 +123,7 @@ func runDetect(args []string) error {
 		runID += "-" + *tag
 	}
 	cfg := runConfig{
-		ID: runID, CreatedAt: time.Now().UTC().Format(time.RFC3339), Model: *model, Effort: *effort, Transport: *transport, NoTimes: format.NoTimes, WindowSeconds: format.WindowSeconds,
+		ID: runID, CreatedAt: time.Now().UTC().Format(time.RFC3339), Model: *model, Effort: *effort, Transport: *transport, PriceFactor: priceFactor, NoTimes: format.NoTimes, WindowSeconds: format.WindowSeconds,
 		PromptVersion: prompt.Version, PromptSHA: prompt.SHA, Evalset: *set, Provider: *providerName,
 		Prices: price, MinSegmentSeconds: 5,
 	}
@@ -126,6 +133,7 @@ func runDetect(args []string) error {
 	}
 
 	var client detector.Client
+	var batchClient *detector.AnthropicBatch
 	switch *transport {
 	case "cli":
 		c, err := detector.NewClaudeCLI(*model, *effort)
@@ -135,6 +143,12 @@ func runDetect(args []string) error {
 		defer c.Close()
 		cfg.CLIVersion = c.Version()
 		client = c
+	case "batch":
+		c, err := detector.NewAnthropicBatch(*model, *effort)
+		if err != nil {
+			return err
+		}
+		client, batchClient = c, c
 	default:
 		c, err := detector.NewAnthropic(*model, *effort)
 		if err != nil {
@@ -158,6 +172,39 @@ func runDetect(args []string) error {
 		fmt.Fprintf(os.Stderr, "resuming run %s\n", runID)
 	}
 
+	if batchClient != nil {
+		// Build the requests of every video that still needs a call, submit them
+		// once (or attach to -batch-id), wait, and let the loop below read the results.
+		var pending []detector.Request
+		for _, id := range ids {
+			if status, err := st.CallStatus(ctx, runID, *providerName, id); err != nil {
+				return err
+			} else if status == "ok" || status == "no_transcript" {
+				continue
+			}
+			meta, cues, err := readTranscript(filepath.Join(cacheDir(*data, *providerName), id+".jsonl"))
+			if err != nil || len(cues) == 0 {
+				continue
+			}
+			req := detector.NewRequestFormat(prompt, meta, format.Apply(cues), format)
+			req.Key = id
+			pending = append(pending, req)
+		}
+		if len(pending) > 0 {
+			bid := *batchID
+			if bid == "" {
+				if bid, err = batchClient.Submit(ctx, pending); err != nil {
+					return fmt.Errorf("submit batch: %w", err)
+				}
+				fmt.Printf("batch submitted: %s (%d requests); re-attach with -batch-id %s if interrupted\n", bid, len(pending), bid)
+			}
+			cfg.BatchID = bid
+			if err := batchClient.Wait(ctx, bid, 30*time.Second, func(line string) { fmt.Println(line) }); err != nil {
+				return fmt.Errorf("wait for batch: %w", err)
+			}
+		}
+	}
+
 	m := runMetrics{Status: map[string]int{}, Segments: map[string]int{}, Confidence: map[string]int{}}
 	var latencies []int
 	for i, id := range ids {
@@ -178,11 +225,11 @@ func runDetect(args []string) error {
 				call.Error = err.Error()
 			}
 		default:
-			res, err := client.Detect(ctx, detector.NewRequestFormat(prompt, meta, cues, format))
+			res, err := client.Detect(ctx, withKey(detector.NewRequestFormat(prompt, meta, cues, format), id))
 			call.InputTokens, call.OutputTokens = res.Usage.InputTokens, res.Usage.OutputTokens
 			call.CacheReadTokens, call.CacheWriteTokens = res.Usage.CacheReadTokens, res.Usage.CacheWriteTokens
 			call.LatencyMS = int(res.Latency / time.Millisecond)
-			call.CostUSD = price.Cost(res.Usage)
+			call.CostUSD = price.Cost(res.Usage) * priceFactor
 			switch {
 			case err != nil:
 				call.Status, call.Error = "api_error", err.Error()
@@ -220,6 +267,7 @@ func runDetect(args []string) error {
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		return err
 	}
+	cfgJSON, _ = json.MarshalIndent(cfg, "", "  ") // re-marshal: the batch id is known only now
 	if err := os.WriteFile(filepath.Join(dir, "config.json"), cfgJSON, 0o644); err != nil {
 		return err
 	}
@@ -331,4 +379,9 @@ func aggregate(ctx context.Context, st *store.Store, runID string, m *runMetrics
 	}
 	m.VideosWithAds = len(videos)
 	return prow.Err()
+}
+
+func withKey(r detector.Request, key string) detector.Request {
+	r.Key = key
+	return r
 }

@@ -70,6 +70,12 @@ func (a *Anthropic) Detect(ctx context.Context, req Request) (Result, error) {
 	if err != nil {
 		return res, err // the SDK error text carries the HTTP status; detect.go reads it
 	}
+	return resultFromMessage(msg, res)
+}
+
+// resultFromMessage turns a finished message (from the Messages API or from a
+// batch result) into a Result: usage, the JSON text block, stop-reason checks.
+func resultFromMessage(msg *anthropic.Message, res Result) (Result, error) {
 	res.Usage = Usage{
 		InputTokens:      int(msg.Usage.InputTokens),
 		OutputTokens:     int(msg.Usage.OutputTokens),
