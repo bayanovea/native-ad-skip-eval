@@ -1,9 +1,13 @@
 package main
 
 import (
+	"bufio"
 	"context"
+	"encoding/json"
 	"flag"
 	"fmt"
+	"os"
+	"path/filepath"
 	"strings"
 
 	"ad-skip-segment-eval/internal/score"
@@ -46,6 +50,28 @@ func runRank(args []string) error {
 		}
 		return score.NetScore(res.BySeconds[score.AnyAd], *lambda), nil
 	}
+	// raw returns, for the first run of a variant, the two numbers the headline
+	// is made of: share of ad time removed, and seconds of content cut wrongly
+	// per hour of video (duration from the transcript meta line).
+	raw := func(run string) (string, error) {
+		res, _, _, err := computeScore(ctx, st, run, scoreParams{Gold: *goldMode, Opt: opt})
+		if err != nil {
+			return "", err
+		}
+		videos, err := st.RunVideos(ctx, run, "ok")
+		if err != nil {
+			return "", err
+		}
+		hours := 0.0
+		for _, v := range videos {
+			hours += transcriptDuration(*data, v[0], v[1]) / 3600
+		}
+		x := res.BySeconds[score.AnyAd]
+		if hours == 0 {
+			return fmt.Sprintf("%.0f%%  n/a", 100*x.Recall()), nil
+		}
+		return fmt.Sprintf("%.0f%%  %.1f s/h", 100*x.Recall(), x.WronglySkipped()/hours), nil
+	}
 	summary := func(runs []string, exclude string) (string, error) {
 		var vals []float64
 		for _, r := range runs {
@@ -66,7 +92,7 @@ func runRank(args []string) error {
 		return fmt.Sprintf("%.2f  (%.2f–%.2f, n=%d)", sum/float64(len(vals)), lo, hi, len(vals)), nil
 	}
 
-	header := fmt.Sprintf("%-28s %-26s", "variant", "SCORE all videos")
+	header := fmt.Sprintf("%-28s %-26s %-20s", "variant", "SCORE all videos", "ad removed, wrong cut")
 	if *excludeOwner != "" {
 		header += " SCORE without " + *excludeOwner
 	}
@@ -81,7 +107,11 @@ func runRank(args []string) error {
 		if err != nil {
 			return err
 		}
-		line := fmt.Sprintf("%-28s %-26s", label, all)
+		rawText, err := raw(runs[0])
+		if err != nil {
+			return err
+		}
+		line := fmt.Sprintf("%-28s %-26s %-20s", label, all, rawText)
 		if *excludeOwner != "" {
 			ex, err := summary(runs, *excludeOwner)
 			if err != nil {
@@ -93,4 +123,26 @@ func runRank(args []string) error {
 	}
 	fmt.Printf("\nSCORE = share of ad time removed minus %g× the share of content wrongly removed; product thresholds; %s gold; counted in seconds.\n", *lambda, *goldMode)
 	return nil
+}
+
+// transcriptDuration reads the duration from the meta line of a cached
+// transcript; 0 when the transcript or the field is missing.
+func transcriptDuration(data, provider, id string) float64 {
+	f, err := os.Open(filepath.Join(data, "transcripts", provider, id+".jsonl"))
+	if err != nil {
+		return 0
+	}
+	defer f.Close()
+	sc := bufio.NewScanner(f)
+	sc.Buffer(make([]byte, 1<<20), 1<<20)
+	if !sc.Scan() {
+		return 0
+	}
+	var meta struct {
+		Duration float64 `json:"duration"`
+	}
+	if json.Unmarshal(sc.Bytes(), &meta) != nil {
+		return 0
+	}
+	return meta.Duration
 }
