@@ -28,6 +28,7 @@ func runRank(args []string) error {
 	minSeconds := fs.Float64("min-seconds", 5, "drop predictions shorter than this")
 	goldMode := fs.String("gold", "reviewed", "all | assessor | reviewed")
 	excludeOwner := fs.String("exclude-owner", "", "second column: the same without videos of this owner part")
+	timingClean := fs.Bool("timing-clean", false, "drop videos whose subtitle track ends >3 s after the video (unreliable timeline)")
 	lambda := fs.Float64("lambda", 10, "a wrongly cut second counts this many times worse than a missed ad second")
 	if err := fs.Parse(args); err != nil {
 		return err
@@ -44,7 +45,7 @@ func runRank(args []string) error {
 
 	opt := score.Options{MinSeconds: *minSeconds, IoU: *iou, MinConfidenceBy: productConfidence}
 	one := func(run, exclude string) (float64, error) {
-		res, _, _, err := computeScore(ctx, st, run, scoreParams{Gold: *goldMode, ExcludeOwner: exclude, Opt: opt})
+		res, _, _, err := computeScore(ctx, st, run, scoreParams{Gold: *goldMode, ExcludeOwner: exclude, TimingClean: *timingClean, DataRoot: *data, Opt: opt})
 		if err != nil {
 			return 0, fmt.Errorf("%s: %w", run, err)
 		}
@@ -54,7 +55,7 @@ func runRank(args []string) error {
 	// is made of: share of ad time removed, and seconds of content cut wrongly
 	// per hour of video (duration from the transcript meta line).
 	raw := func(run string) (string, error) {
-		res, _, _, err := computeScore(ctx, st, run, scoreParams{Gold: *goldMode, Opt: opt})
+		res, _, _, err := computeScore(ctx, st, run, scoreParams{Gold: *goldMode, TimingClean: *timingClean, DataRoot: *data, Opt: opt})
 		if err != nil {
 			return "", err
 		}

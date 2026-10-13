@@ -1,8 +1,12 @@
 package main
 
 import (
+	"bufio"
 	"context"
+	"encoding/json"
 	"fmt"
+	"os"
+	"path/filepath"
 	"strings"
 
 	"ad-skip-segment-eval/internal/score"
@@ -17,7 +21,9 @@ var productConfidence = map[string]string{"sponsor": "medium", "self_promotion":
 type scoreParams struct {
 	Gold         string // all | assessor | reviewed
 	ExcludeOwner string
+	TimingClean  bool // drop videos whose subtitle track ends after the video (timeline unreliable)
 	NoOffsets    bool
+	DataRoot     string // needed by TimingClean to read transcripts
 	Opt          score.Options
 }
 
@@ -39,6 +45,9 @@ func computeScore(ctx context.Context, st *store.Store, runID string, p scorePar
 	var kept [][2]string
 	for _, v := range videos {
 		if p.ExcludeOwner != "" && strings.HasPrefix(v[1], p.ExcludeOwner+"_") {
+			continue
+		}
+		if p.TimingClean && transcriptOverrun(p.DataRoot, v[0], v[1]) > overrunLimit {
 			continue
 		}
 		kept = append(kept, v)
@@ -114,4 +123,42 @@ func computeScore(ctx context.Context, st *store.Store, runID string, p scorePar
 		reviewsApplied = len(reviews)
 	}
 	return score.Score(golds, preds, p.Opt), scored, reviewsApplied, nil
+}
+
+// overrunLimit is the number of seconds by which the last subtitle cue may
+// end after the video. Measured against the audio on 29 videos (2026-10-13):
+// 11 of 14 videos above 3 s were shifted by more than 2 s, 1 of 15 below.
+const overrunLimit = 3.0
+
+// transcriptOverrun is the end of the last cue minus the video duration, from
+// the cached transcript (meta line + cues); 0 when unknown.
+func transcriptOverrun(data, provider, id string) float64 {
+	f, err := os.Open(filepath.Join(data, "transcripts", provider, id+".jsonl"))
+	if err != nil {
+		return 0
+	}
+	defer f.Close()
+	sc := bufio.NewScanner(f)
+	sc.Buffer(make([]byte, 1<<20), 1<<20)
+	var duration, lastEnd float64
+	for sc.Scan() {
+		var l struct {
+			Kind     string  `json:"kind"`
+			Duration float64 `json:"duration"`
+			End      float64 `json:"end"`
+		}
+		if json.Unmarshal(sc.Bytes(), &l) != nil {
+			continue
+		}
+		switch l.Kind {
+		case "meta":
+			duration = l.Duration
+		case "cue":
+			lastEnd = l.End
+		}
+	}
+	if duration == 0 || lastEnd == 0 {
+		return 0
+	}
+	return lastEnd - duration
 }
