@@ -28,6 +28,9 @@ func runEvalset(args []string) error {
 		return errors.New("evalset needs a kind: heldout | v0 | dev")
 	}
 	kind := args[0]
+	if kind == "clean-cand" || kind == "clean" {
+		return runEvalsetClean(kind, args[1:])
+	}
 	fs := flag.NewFlagSet("evalset "+kind, flag.ContinueOnError)
 	providerName := fs.String("provider", "main", "video platform")
 	data := fs.String("data", defaultDataDir(), "private data root")
