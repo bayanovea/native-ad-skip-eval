@@ -175,3 +175,9 @@ func TestSecondsOverlapIgnoresHowBlocksAreCut(t *testing.T) {
 		t.Fatalf("segment level should miss both pieces at IoU 0.5, got %+v", r.ByCategory["sponsor"])
 	}
 }
+
+func TestNetScoreNoGold(t *testing.T) {
+	if v := NetScore(Seconds{}, 10); !math.IsNaN(v) {
+		t.Fatalf("NetScore without gold = %v, want NaN", v)
+	}
+}

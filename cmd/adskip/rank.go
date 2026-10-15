@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"math"
 	"os"
 	"path/filepath"
 	"strings"
@@ -81,6 +82,11 @@ func runRank(args []string) error {
 				return "", err
 			}
 			vals = append(vals, v)
+		}
+		for _, v := range vals {
+			if math.IsNaN(v) {
+				return "n/a (no gold)", nil
+			}
 		}
 		lo, hi, sum := vals[0], vals[0], 0.0
 		for _, v := range vals {

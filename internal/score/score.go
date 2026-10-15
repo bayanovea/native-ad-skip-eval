@@ -501,9 +501,11 @@ func fratio(a, b float64) float64 {
 // a missed ad second, because the player skips without asking (prompt purpose).
 // 1.0 = every ad second removed and nothing else; 0 = what a viewer gets with
 // no detector; below 0 = the detector costs more content than it saves ads.
+// Without gold ad time the score is undefined and NetScore returns NaN, so a
+// set with nothing to remove never reads as "no detector" (0).
 func NetScore(x Seconds, lambda float64) float64 {
 	if x.Gold == 0 {
-		return 0
+		return math.NaN()
 	}
 	return (x.Both - lambda*x.WronglySkipped()) / x.Gold
 }

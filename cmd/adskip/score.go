@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"math"
 	"os"
 	"path/filepath"
 	"sort"
@@ -250,6 +251,14 @@ func copysign(mag, sign float64) float64 {
 // categories.
 func printHeadline(run string, videos int, gold string, x score.Seconds, lambda float64) {
 	fmt.Printf("%s · %d videos · gold: %s\n", run, videos, gold)
-	fmt.Printf("SCORE %.2f   (ad time removed, minus %g× the content wrongly removed; 1.0 = perfect, 0 = no detector)\n", score.NetScore(x, lambda), lambda)
+	fmt.Printf("SCORE %s   (ad time removed, minus %g× the content wrongly removed; 1.0 = perfect, 0 = no detector)\n", fmtScore(score.NetScore(x, lambda)), lambda)
 	fmt.Printf("  of %.0f s of ad: %.0f s removed (%.0f%%), %.0f s left in · content wrongly cut: %.0f s\n", x.Gold, x.Both, 100*x.Recall(), x.MissedAd(), x.WronglySkipped())
+}
+
+// fmtScore prints a SCORE, or "n/a" when the set has no gold ad time.
+func fmtScore(v float64) string {
+	if math.IsNaN(v) {
+		return "n/a"
+	}
+	return fmt.Sprintf("%.2f", v)
 }

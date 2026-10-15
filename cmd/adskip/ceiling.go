@@ -127,7 +127,7 @@ func runCeiling(args []string) error {
 		}
 		res := score.Score(g.golds, g.preds, opt)
 		x := res.BySeconds[score.AnyAd]
-		fmt.Printf("%-14s %7d %9d %8.2f %8.2f %8.2f\n", name, g.videos, g.humans, score.NetScore(x, *lambda), x.Precision(), x.Recall())
+		fmt.Printf("%-14s %7d %9d %8s %8.2f %8.2f\n", name, g.videos, g.humans, fmtScore(score.NetScore(x, *lambda)), x.Precision(), x.Recall())
 	}
 	return nil
 }
