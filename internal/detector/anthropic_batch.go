@@ -36,12 +36,16 @@ type batchOutcome struct {
 	err error
 }
 
-// NewAnthropicBatch builds the client; credentials as for Anthropic.
+// NewAnthropicBatch builds the client; the key as for Anthropic.
 func NewAnthropicBatch(model, effort string) (*AnthropicBatch, error) {
 	if model == "" {
 		return nil, errors.New("model is required")
 	}
-	return &AnthropicBatch{client: anthropic.NewClient(), model: model, effort: effort, results: map[string]batchOutcome{}}, nil
+	client, err := newAPIClient()
+	if err != nil {
+		return nil, err
+	}
+	return &AnthropicBatch{client: client, model: model, effort: effort, results: map[string]batchOutcome{}}, nil
 }
 
 // WithThinking sends thinking: {type: adaptive} on every request of the batch.

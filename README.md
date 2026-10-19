@@ -135,7 +135,7 @@ YT_DLP=~/Web/tools/ytv/bin/yt-dlp ./adskip fetch -set c2-spike
 ./adskip evalset heldout   # 20% of assessor videos by hash bucket; never looked at during prompt work
 ./adskip evalset v0        # 10 assessor + 10 multi-contributor videos, not held out, not in c2-spike
 
-# Run the detector over an eval set (paid model calls; `ant auth login` or ANTHROPIC_API_KEY).
+# Run the detector over an eval set (paid model calls; Console key in ~/.config/adskip/anthropic.key or the file named by ADSKIP_ANTHROPIC_KEY_FILE).
 ./adskip detect -set v0 -dry-run                       # sizes and a cost estimate, no calls
 ./adskip detect -set v0 -model claude-opus-5-5 -effort medium
 

@@ -5,10 +5,13 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
 	"github.com/anthropics/anthropic-sdk-go"
+	"github.com/anthropics/anthropic-sdk-go/option"
 )
 
 // Anthropic is the Client over the Claude API (Go SDK).
@@ -30,13 +33,48 @@ type Anthropic struct {
 	thinking bool
 }
 
-// NewAnthropic builds a client for one model and effort level. Credentials
-// come from the environment: ANTHROPIC_API_KEY or the `ant auth login` profile.
+// NewAnthropic builds a client for one model and effort level; the key comes
+// from apiKeyPath.
 func NewAnthropic(model, effort string) (*Anthropic, error) {
 	if model == "" {
 		return nil, errors.New("model is required")
 	}
-	return &Anthropic{client: anthropic.NewClient(), model: model, effort: effort}, nil
+	client, err := newAPIClient()
+	if err != nil {
+		return nil, err
+	}
+	return &Anthropic{client: client, model: model, effort: effort}, nil
+}
+
+// apiKeyPath is where the paid API key lives: ADSKIP_ANTHROPIC_KEY_FILE, else
+// ~/.config/adskip/anthropic.key. Deliberately not the SDK's default lookup
+// (ANTHROPIC_API_KEY, the `ant auth login` profile): other tools read those too,
+// and a session meant to run on a subscription can end up on the paid key.
+func apiKeyPath() (string, error) {
+	if p := os.Getenv("ADSKIP_ANTHROPIC_KEY_FILE"); p != "" {
+		return p, nil
+	}
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(home, ".config", "adskip", "anthropic.key"), nil
+}
+
+func newAPIClient() (anthropic.Client, error) {
+	path, err := apiKeyPath()
+	if err != nil {
+		return anthropic.Client{}, err
+	}
+	b, err := os.ReadFile(path)
+	if err != nil {
+		return anthropic.Client{}, fmt.Errorf("read API key (put a Console key in %s, chmod 600): %w", path, err)
+	}
+	key := strings.TrimSpace(string(b))
+	if key == "" {
+		return anthropic.Client{}, fmt.Errorf("API key file %s is empty", path)
+	}
+	return anthropic.NewClient(option.WithAPIKey(key)), nil
 }
 
 // WithThinking sends thinking: {type: adaptive}. Thinking tokens are billed as output.
