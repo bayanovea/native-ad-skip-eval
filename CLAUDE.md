@@ -34,7 +34,8 @@ the first, `modernc.org/sqlite`, no cgo).
   labels are never edited. `score -gold reviewed` applies them: missing ads added, wrong labels removed,
   unclear regions excluded from both sides. **A review sheet built from one run's disagreements favours
   that run** (its own predictions become gold): report raw and reviewed side by side and say which run
-  the sheet came from.
+  the sheet came from. `sheet -misses` asks the other way round (human-labelled ad stretches no run keeps); the
+  product export reads every sheet as model-flagged, so load its verdicts with `review -misses`.
 - `video_flags` table — per-video assessor facts from the product's review page (`adskip flags`, latest value
   wins). `rank -timing-clean` drops a video on `track_mismatch = true` or a >3 s subtitle overrun; an assessor's
   `false` never keeps an overrun video (it covers only the items they checked). Flags say nothing about verdicts.

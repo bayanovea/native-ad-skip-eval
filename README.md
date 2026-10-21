@@ -230,6 +230,8 @@ quality problem from the first fetch rather than discovering it on the third set
 # Review loop: blind sheet over several runs → verdicts (TSV) → applied by -gold reviewed.
 ./adskip sheet -runs RUN1,RUN2 -out sheet.md
 ./adskip review -file verdicts.tsv -run RUN1 -date 2026-10-19
+./adskip sheet -misses -runs RUN1,RUN2 -out misses.md       # human-labelled ads no run found
+./adskip review -misses -file misses.verdicts.tsv -run misses-RUN -date 2026-10-22   # ad → gold_valid, not → gold_wrong
 ./adskip offset -id ID -seconds 11 -date 2026-10-12         # per-video subtitle timeline offset
 ./adskip flags -file video-flags.tsv                        # assessor flags (track ≠ video)
 ```
