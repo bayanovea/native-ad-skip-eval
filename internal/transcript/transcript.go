@@ -10,7 +10,7 @@ import (
 	"os"
 	"time"
 
-	"ad-skip-segment-eval/internal/vtt"
+	"github.com/bayanovea/ad-skip-segment-eval/internal/vtt"
 )
 
 // TrackType classifies the subtitle track used for the transcript.

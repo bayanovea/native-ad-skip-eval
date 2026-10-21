@@ -11,9 +11,9 @@ import (
 	"strings"
 	"time"
 
-	"ad-skip-segment-eval/internal/netguard"
-	"ad-skip-segment-eval/internal/store"
-	"ad-skip-segment-eval/internal/transcript"
+	"github.com/bayanovea/ad-skip-segment-eval/internal/netguard"
+	"github.com/bayanovea/ad-skip-segment-eval/internal/store"
+	"github.com/bayanovea/ad-skip-segment-eval/internal/transcript"
 )
 
 // runEvalsetClean builds the clean-video slice: videos from the same channels as

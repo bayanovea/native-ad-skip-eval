@@ -12,8 +12,8 @@ import (
 	"strings"
 	"time"
 
-	"ad-skip-segment-eval/internal/detector"
-	"ad-skip-segment-eval/internal/store"
+	"github.com/bayanovea/ad-skip-segment-eval/internal/detector"
+	"github.com/bayanovea/ad-skip-segment-eval/internal/store"
 )
 
 // runConfig is runs/<id>/config.json: everything needed to repeat the run.

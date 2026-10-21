@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"sort"
 
-	"ad-skip-segment-eval/internal/score"
-	"ad-skip-segment-eval/internal/store"
+	"github.com/bayanovea/ad-skip-segment-eval/internal/score"
+	"github.com/bayanovea/ad-skip-segment-eval/internal/store"
 )
 
 // runCompare measures how much two runs agree with each other, without gold.

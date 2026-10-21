@@ -13,11 +13,11 @@ import (
 	"strings"
 	"time"
 
-	"ad-skip-segment-eval/internal/netguard"
-	"ad-skip-segment-eval/internal/provider"
-	"ad-skip-segment-eval/internal/transcript"
-	"ad-skip-segment-eval/internal/vtt"
-	"ad-skip-segment-eval/internal/ytdlp"
+	"github.com/bayanovea/ad-skip-segment-eval/internal/netguard"
+	"github.com/bayanovea/ad-skip-segment-eval/internal/provider"
+	"github.com/bayanovea/ad-skip-segment-eval/internal/transcript"
+	"github.com/bayanovea/ad-skip-segment-eval/internal/vtt"
+	"github.com/bayanovea/ad-skip-segment-eval/internal/ytdlp"
 )
 
 type fetchOpts struct {

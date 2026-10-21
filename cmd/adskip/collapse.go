@@ -9,9 +9,9 @@ import (
 	"path/filepath"
 	"time"
 
-	"ad-skip-segment-eval/internal/provider"
-	"ad-skip-segment-eval/internal/transcript"
-	"ad-skip-segment-eval/internal/vtt"
+	"github.com/bayanovea/ad-skip-segment-eval/internal/provider"
+	"github.com/bayanovea/ad-skip-segment-eval/internal/transcript"
+	"github.com/bayanovea/ad-skip-segment-eval/internal/vtt"
 )
 
 // runCollapse rebuilds <id>.jsonl from a cached VTT without any network access.

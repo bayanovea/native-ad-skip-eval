@@ -13,7 +13,7 @@ import (
 	"sort"
 	"strings"
 
-	"ad-skip-segment-eval/internal/store"
+	"github.com/bayanovea/ad-skip-segment-eval/internal/store"
 )
 
 // Categories is the closed set of label categories in the product.

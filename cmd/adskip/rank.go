@@ -11,8 +11,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"ad-skip-segment-eval/internal/score"
-	"ad-skip-segment-eval/internal/store"
+	"github.com/bayanovea/ad-skip-segment-eval/internal/score"
+	"github.com/bayanovea/ad-skip-segment-eval/internal/store"
 )
 
 // runRank prints one SCORE per variant, so variants can be compared at a glance.

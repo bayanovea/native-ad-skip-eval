@@ -18,8 +18,8 @@ import (
 	"strings"
 	"time"
 
-	"ad-skip-segment-eval/internal/transcript"
-	"ad-skip-segment-eval/internal/vtt"
+	"github.com/bayanovea/ad-skip-segment-eval/internal/transcript"
+	"github.com/bayanovea/ad-skip-segment-eval/internal/vtt"
 )
 
 // Categories the detector may return. intro/credits exist in the product but

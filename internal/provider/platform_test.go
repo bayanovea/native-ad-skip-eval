@@ -3,8 +3,8 @@ package provider
 import (
 	"testing"
 
-	"ad-skip-segment-eval/internal/transcript"
-	"ad-skip-segment-eval/internal/ytdlp"
+	"github.com/bayanovea/ad-skip-segment-eval/internal/transcript"
+	"github.com/bayanovea/ad-skip-segment-eval/internal/ytdlp"
 )
 
 func TestPickTrackShapes(t *testing.T) {

@@ -8,8 +8,8 @@ import (
 	"fmt"
 	"sort"
 
-	"ad-skip-segment-eval/internal/transcript"
-	"ad-skip-segment-eval/internal/ytdlp"
+	"github.com/bayanovea/ad-skip-segment-eval/internal/transcript"
+	"github.com/bayanovea/ad-skip-segment-eval/internal/ytdlp"
 )
 
 // Provider is one video platform.

@@ -4,8 +4,8 @@ import (
 	"strings"
 	"testing"
 
-	"ad-skip-segment-eval/internal/transcript"
-	"ad-skip-segment-eval/internal/vtt"
+	"github.com/bayanovea/ad-skip-segment-eval/internal/transcript"
+	"github.com/bayanovea/ad-skip-segment-eval/internal/vtt"
 )
 
 var cues = []vtt.Cue{

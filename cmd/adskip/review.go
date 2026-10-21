@@ -9,8 +9,8 @@ import (
 	"strconv"
 	"strings"
 
-	"ad-skip-segment-eval/internal/score"
-	"ad-skip-segment-eval/internal/store"
+	"github.com/bayanovea/ad-skip-segment-eval/internal/score"
+	"github.com/bayanovea/ad-skip-segment-eval/internal/store"
 )
 
 // runReview loads an eye-check sheet's verdicts (TSV) into gold_reviews.

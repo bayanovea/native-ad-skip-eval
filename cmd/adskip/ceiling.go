@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"sort"
 
-	"ad-skip-segment-eval/internal/score"
-	"ad-skip-segment-eval/internal/store"
+	"github.com/bayanovea/ad-skip-segment-eval/internal/score"
+	"github.com/bayanovea/ad-skip-segment-eval/internal/store"
 )
 
 // runCeiling scores every human against the union of the other humans on the

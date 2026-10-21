@@ -11,8 +11,8 @@ import (
 	"sort"
 	"strings"
 
-	"ad-skip-segment-eval/internal/score"
-	"ad-skip-segment-eval/internal/store"
+	"github.com/bayanovea/ad-skip-segment-eval/internal/score"
+	"github.com/bayanovea/ad-skip-segment-eval/internal/store"
 )
 
 // runScore compares a run's predictions with the gold labels of the videos

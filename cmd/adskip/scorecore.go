@@ -9,8 +9,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"ad-skip-segment-eval/internal/score"
-	"ad-skip-segment-eval/internal/store"
+	"github.com/bayanovea/ad-skip-segment-eval/internal/score"
+	"github.com/bayanovea/ad-skip-segment-eval/internal/store"
 )
 
 // productConfidence is the skip rule of the product: a sponsor segment from

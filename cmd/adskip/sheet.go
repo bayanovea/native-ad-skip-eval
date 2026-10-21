@@ -11,9 +11,9 @@ import (
 	"sort"
 	"strings"
 
-	"ad-skip-segment-eval/internal/provider"
-	"ad-skip-segment-eval/internal/score"
-	"ad-skip-segment-eval/internal/store"
+	"github.com/bayanovea/ad-skip-segment-eval/internal/provider"
+	"github.com/bayanovea/ad-skip-segment-eval/internal/score"
+	"github.com/bayanovea/ad-skip-segment-eval/internal/store"
 )
 
 // runSheet builds a blind review sheet from the union of several runs.

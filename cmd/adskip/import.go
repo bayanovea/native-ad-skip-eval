@@ -7,8 +7,8 @@ import (
 	"fmt"
 	"os"
 
-	"ad-skip-segment-eval/internal/gold"
-	"ad-skip-segment-eval/internal/store"
+	"github.com/bayanovea/ad-skip-segment-eval/internal/gold"
+	"github.com/bayanovea/ad-skip-segment-eval/internal/store"
 )
 
 // runImport loads a gold export (JSONL) into <data>/adskip.db. Re-running the

@@ -8,7 +8,7 @@ import (
 	"os"
 	"strings"
 
-	"ad-skip-segment-eval/internal/store"
+	"github.com/bayanovea/ad-skip-segment-eval/internal/store"
 )
 
 // flagTrackMismatch is the assessor's "subtitle track ≠ video" flag.

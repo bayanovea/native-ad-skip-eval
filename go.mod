@@ -1,4 +1,4 @@
-module ad-skip-segment-eval
+module github.com/bayanovea/ad-skip-segment-eval
 
 go 1.27
 
