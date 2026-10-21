@@ -132,13 +132,10 @@ func computeScore(ctx context.Context, st *store.Store, runID string, p scorePar
 }
 
 // timelineUnreliable says whether a video's subtitle times cannot be compared
-// with player-time gold. An assessor's track_mismatch flag decides when set,
-// in both directions: they compared text and player, the overrun only hints.
+// with player-time gold: either signal is enough. An assessor's "matches" does
+// not override the overrun, because it covers only the items they checked.
 func timelineUnreliable(mismatch map[string]bool, data, provider, id string) bool {
-	if v, ok := mismatch[provider+":"+id]; ok {
-		return v
-	}
-	return transcriptOverrun(data, provider, id) > overrunLimit
+	return mismatch[provider+":"+id] || transcriptOverrun(data, provider, id) > overrunLimit
 }
 
 // overrunLimit is the number of seconds by which the last subtitle cue may
