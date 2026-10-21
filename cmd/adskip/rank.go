@@ -17,7 +17,7 @@ import (
 
 // runRank prints one SCORE per variant, so variants can be compared at a glance.
 //
-//	adskip rank [-exclude-owner c1] [-lambda 10] "v1.1=runA,runB" "v2.1=runC,runD"
+//	adskip rank [-exclude-owner c1] [-videos FILE] [-timing-clean] [-lambda 10] "v1.1=runA,runB" "v2.1=runC,runD"
 //
 // Each argument is label=run[,run...]; several runs of the same configuration
 // give the mean and the min–max, which is the noise to read differences against.
@@ -29,6 +29,7 @@ func runRank(args []string) error {
 	minSeconds := fs.Float64("min-seconds", 5, "drop predictions shorter than this")
 	goldMode := fs.String("gold", "reviewed", "all | assessor | reviewed")
 	excludeOwner := fs.String("exclude-owner", "", "second column: the same without videos of this owner part")
+	videosFile := fs.String("videos", "", "score only the videos listed in this file (one native id per line)")
 	timingClean := fs.Bool("timing-clean", false, "drop videos with an unreliable timeline: assessor track_mismatch flag or subtitle track ending >3 s after the video")
 	lambda := fs.Float64("lambda", 10, "a wrongly cut second counts this many times worse than a missed ad second")
 	if err := fs.Parse(args); err != nil {
@@ -36,6 +37,10 @@ func runRank(args []string) error {
 	}
 	if fs.NArg() == 0 {
 		return fmt.Errorf("give at least one label=run[,run...]")
+	}
+	only, err := readVideoSet(*videosFile)
+	if err != nil {
+		return err
 	}
 	ctx := context.Background()
 	st, err := store.Open(store.Path(*data))
@@ -46,7 +51,7 @@ func runRank(args []string) error {
 
 	opt := score.Options{MinSeconds: *minSeconds, IoU: *iou, MinConfidenceBy: productConfidence}
 	one := func(run, exclude string) (float64, error) {
-		res, _, _, err := computeScore(ctx, st, run, scoreParams{Gold: *goldMode, ExcludeOwner: exclude, TimingClean: *timingClean, DataRoot: *data, Opt: opt})
+		res, _, _, err := computeScore(ctx, st, run, scoreParams{Gold: *goldMode, ExcludeOwner: exclude, Videos: only, TimingClean: *timingClean, DataRoot: *data, Opt: opt})
 		if err != nil {
 			return 0, fmt.Errorf("%s: %w", run, err)
 		}
@@ -56,11 +61,12 @@ func runRank(args []string) error {
 	// is made of: share of ad time removed, and seconds of content cut wrongly
 	// per hour of video (duration from the transcript meta line).
 	raw := func(run string) (string, error) {
-		res, _, _, err := computeScore(ctx, st, run, scoreParams{Gold: *goldMode, TimingClean: *timingClean, DataRoot: *data, Opt: opt})
+		p := scoreParams{Gold: *goldMode, Videos: only, TimingClean: *timingClean, DataRoot: *data, Opt: opt}
+		res, _, _, err := computeScore(ctx, st, run, p)
 		if err != nil {
 			return "", err
 		}
-		videos, err := st.RunVideos(ctx, run, "ok")
+		videos, err := selectVideos(ctx, st, run, p)
 		if err != nil {
 			return "", err
 		}

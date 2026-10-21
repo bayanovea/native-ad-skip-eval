@@ -155,6 +155,9 @@ YT_DLP=~/Web/tools/ytv/bin/yt-dlp ./adskip fetch -set c2-spike
 # Load an eye-check sheet's verdicts (private TSV) so `-gold reviewed` can apply them.
 ./adskip review -file ~/Web/data/review/2026-10-11-opus-v1.tsv -run 2026-10-11-claude-opus-5-5-v1 -date 2026-10-12
 
+# Score a slice: only the videos listed in a file (one native id per line), e.g. one reviewer's sheet.
+./adskip rank -timing-clean -videos ~/Web/data/evalsets/heldout-sheet-a.txt "v2.1=RUN"
+
 # Load the assessors' per-video flags (the product's export); `rank -timing-clean` uses track_mismatch.
 ./adskip flags -file ~/Web/data/review/video-flags.tsv
 ```

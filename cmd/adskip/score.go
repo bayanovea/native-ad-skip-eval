@@ -31,6 +31,7 @@ func runScore(args []string) error {
 	goldMode := fs.String("gold", "all", "which human labels count: all | assessor | reviewed (all + eye-check verdicts applied)")
 	noOffsets := fs.Bool("no-offsets", false, "ignore per-video timeline offsets (video_offsets)")
 	excludeOwner := fs.String("exclude-owner", "", "leave out videos whose native id starts with this owner part (e.g. c1: a channel that dominates the set)")
+	videosFile := fs.String("videos", "", "score only the videos listed in this file (one native id per line); its base name goes into the output file name")
 	lambda := fs.Float64("lambda", 10, "headline: a wrongly cut second counts this many times worse than a missed ad second")
 	detail := fs.Bool("detail", false, "also print the full table (segments, categories, boundaries, confidence levels)")
 	list := fs.Bool("list", false, "print false positives and misses with video ids to stdout (private)")
@@ -48,6 +49,10 @@ func runScore(args []string) error {
 		return fmt.Errorf("run directory %s: %w", runDir, err)
 	}
 
+	only, err := readVideoSet(*videosFile)
+	if err != nil {
+		return err
+	}
 	ctx := context.Background()
 	st, err := store.Open(store.Path(*data))
 	if err != nil {
@@ -56,13 +61,13 @@ func runScore(args []string) error {
 	defer st.Close()
 
 	opt := score.Options{MinSeconds: *minSeconds, MinConfidence: *minConf, IoU: *iou}
-	res, scored, reviewsApplied, err := computeScore(ctx, st, *runID, scoreParams{Gold: *goldMode, ExcludeOwner: *excludeOwner, NoOffsets: *noOffsets, Opt: opt})
+	res, scored, reviewsApplied, err := computeScore(ctx, st, *runID, scoreParams{Gold: *goldMode, ExcludeOwner: *excludeOwner, Videos: only, NoOffsets: *noOffsets, Opt: opt})
 	if err != nil {
 		return err
 	}
 	headline := func() error {
 		hopt := score.Options{MinSeconds: *minSeconds, IoU: *iou, MinConfidenceBy: productConfidence}
-		hres, _, _, err := computeScore(ctx, st, *runID, scoreParams{Gold: *goldMode, ExcludeOwner: *excludeOwner, NoOffsets: *noOffsets, Opt: hopt})
+		hres, _, _, err := computeScore(ctx, st, *runID, scoreParams{Gold: *goldMode, ExcludeOwner: *excludeOwner, Videos: only, NoOffsets: *noOffsets, Opt: hopt})
 		if err != nil {
 			return err
 		}
@@ -73,6 +78,9 @@ func runScore(args []string) error {
 	tag := fmt.Sprintf("s%g-c%s-iou%g-%s", *minSeconds, orDefault(*minConf, "any"), *iou, *goldMode)
 	if *excludeOwner != "" {
 		tag += "-ex" + strings.TrimPrefix(*excludeOwner, "-")
+	}
+	if *videosFile != "" {
+		tag += "-v" + strings.TrimSuffix(filepath.Base(*videosFile), filepath.Ext(*videosFile))
 	}
 	out := scoreFile{
 		Run: *runID, Settings: scoreSettings{MinSeconds: *minSeconds, MinConfidence: orDefault(*minConf, "any"), IoU: *iou, Gold: *goldMode},
