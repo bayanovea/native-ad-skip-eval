@@ -71,7 +71,7 @@ func usage() {
   adskip collapse [-provider main] [-data DIR] [-lang ru] -id NATIVE_ID
   adskip import   [-data DIR] -file GOLD_JSONL
   adskip evalset  heldout | v0 [-data DIR] [-n 10] [-min-contributors 3] [-exclude c2-spike]
-  adskip detect   -set NAME [-model claude-opus-5-5] [-effort medium] [-transport api|cli] [-tag NAME] [-prompt prompts/v1.md] [-limit N] [-dry-run] [-force] [-data DIR]
+  adskip detect   -set NAME [-model claude-opus-5-5] [-effort medium] [-transport api|cli] [-tag NAME] [-prompt prompts/v2.2.md] [-limit N] [-dry-run] [-force] [-data DIR]
   adskip score    -run RUN_ID [-min-seconds 5] [-min-confidence low|medium|high] [-iou 0.5] [-gold all|assessor|reviewed] [-videos FILE] [-list] [-data DIR]
   adskip rank     [-exclude-owner OWNER] [-videos FILE] [-timing-clean] [-lambda 10] label=run[,run...] ...
   adskip ceiling  [-min-contributors 2] [-set NAME]   # human-human ceiling in SCORE

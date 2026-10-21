@@ -58,7 +58,7 @@ type runMetrics struct {
 
 // runDetect runs the detector over an eval set and records one run.
 //
-//	adskip detect -set v0 -model claude-opus-5-5 -effort medium [-prompt prompts/v1.md]
+//	adskip detect -set v0 -model claude-opus-5-5 -effort medium [-prompt prompts/v2.2.md]
 //
 // Per-video output (calls, predictions) goes to adskip.db; config, prompt copy
 // and aggregate metrics go to runs/<date>-<model>-<prompt version>/ in the repo.
@@ -77,7 +77,7 @@ func runDetect(args []string) error {
 	window := fs.Float64("window", 0, "request format: merge cues into windows of at least this many seconds (0 = off)")
 	thinking := fs.Bool("thinking", false, "thinking on: cli keeps it on (off by default there), api/batch send thinking {type: adaptive} (the API default is no thinking output)")
 	tag := fs.String("tag", "", "suffix for the run id, e.g. \"rerun\"; a different tag is a different run")
-	promptPath := fs.String("prompt", "prompts/v1.md", "prompt file; its name is the prompt version")
+	promptPath := fs.String("prompt", "prompts/v2.2.md", "prompt file; its name is the prompt version")
 	runsDir := fs.String("runs", "runs", "directory for run config and metrics")
 	limit := fs.Int("limit", 0, "stop after N videos (0 = all); for a cheap first try")
 	dryRun := fs.Bool("dry-run", false, "render requests and estimate size, no model calls, nothing written")

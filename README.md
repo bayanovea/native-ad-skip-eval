@@ -51,6 +51,7 @@ run produced it. Raw labels are never edited; verdicts (`gold_missing`, `gold_wr
 | Set | Videos | Model, prompt | SCORE | ad time removed | content wrongly cut | $ / video |
 |---|---|---|---|---|---|---|
 | **held-out** (frozen before any prompt work, scored once) | 217 | Sonnet 5.5, v2.1, batch | **0.34** | 44% | 1.3 s/h | 0.025 |
+| dev-v1 | 69 | Sonnet 5.5, **v2.2** (skit lead-in belongs to the ad), batch | 0.31 (0.26–0.37, n=2) | 61% | 3.7 s/h | 0.022 |
 | dev-v1 (69 videos, 40 channels) | 69 | Sonnet 5.5, v2.1, batch | 0.20 (0.17–0.23, n=2) | 56% | 5.0 s/h | 0.022 |
 | dev-v1, thinking + high effort | 69 | Sonnet 5.5, v2.1, batch | 0.24 (0.21–0.27, n=2) | 55% | 5.2 s/h | 0.022 |
 | v0 (first 18 videos) | 18 | Opus 5.5, v1, API | 0.62 | — | — | 0.17 |
@@ -106,7 +107,7 @@ flowchart LR
     S --> O["SCORE · per-category P/R ·<br/>boundary error → runs/"]
 ```
 
-One model call per video: the prompt (`prompts/v2.1.md`) as system text, the transcript as
+One model call per video: the prompt (`prompts/v2.2.md`, current) as system text, the transcript as
 numbered cues (`[12] 549.4-551.4: text`) in the user message, a JSON schema as the response
 format. The model returns **cue indices, never timestamps**; the code maps indices to seconds and
 rejects an index outside the transcript, a reversed or an overlapping segment. The scorer merges
@@ -217,8 +218,8 @@ quality problem from the first fetch rather than discovering it on the third set
 
 # Detector. -dry-run prints sizes and a cost estimate without a call.
 ./adskip detect -set dev -dry-run
-./adskip detect -set dev -model claude-sonnet-5-5 -transport batch -prompt prompts/v2.1.md -no-times
-./adskip detect -set dev -model claude-sonnet-5-5 -transport cli -prompt prompts/v2.1.md -no-times [-thinking -effort high]
+./adskip detect -set dev -model claude-sonnet-5-5 -transport batch -prompt prompts/v2.2.md -no-times
+./adskip detect -set dev -model claude-sonnet-5-5 -transport cli -prompt prompts/v2.2.md -no-times [-thinking -effort high]
 
 # Scoring. Thresholds are flags; predictions are stored raw.
 ./adskip score -run RUN -iou 0.3 -gold reviewed            # headline; -detail for the full table; -list for misses
