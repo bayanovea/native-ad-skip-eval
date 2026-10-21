@@ -35,6 +35,9 @@ the first, `modernc.org/sqlite`, no cgo).
   unclear regions excluded from both sides. **A review sheet built from one run's disagreements favours
   that run** (its own predictions become gold): report raw and reviewed side by side and say which run
   the sheet came from.
+- `video_flags` table — per-video assessor facts from the product's review page (`adskip flags`, latest value
+  wins). `track_mismatch` decides `rank -timing-clean` when set, in both directions; only unflagged videos fall
+  back to the >3 s subtitle overrun. A flag says nothing about the verdicts: those still judge the text.
 - `prompts/vN.md` — versioned prompts; the file name is the version, the sha256 is in each run's config.
 - `internal/netguard` — external-IP check; fetch refuses to run from a home IP.
 - `internal/policy` — repo-wide tests; `TestNoVideoIDsInTrackedFiles` fails on any video id in tracked files.

@@ -21,7 +21,7 @@ var productConfidence = map[string]string{"sponsor": "medium", "self_promotion":
 type scoreParams struct {
 	Gold         string // all | assessor | reviewed
 	ExcludeOwner string
-	TimingClean  bool // drop videos whose subtitle track ends after the video (timeline unreliable)
+	TimingClean  bool // drop videos whose timeline is unreliable (timelineUnreliable)
 	NoOffsets    bool
 	DataRoot     string // needed by TimingClean to read transcripts
 	Opt          score.Options
@@ -42,12 +42,18 @@ func computeScore(ctx context.Context, st *store.Store, runID string, p scorePar
 	// In assessor mode a video without any assessor label has no gold at all,
 	// so it is left out entirely rather than scored as "no ads here".
 	okVideo := map[string]bool{}
+	var mismatch map[string]bool
+	if p.TimingClean {
+		if mismatch, err = st.Flags(ctx, flagTrackMismatch); err != nil {
+			return zero, 0, 0, err
+		}
+	}
 	var kept [][2]string
 	for _, v := range videos {
 		if p.ExcludeOwner != "" && strings.HasPrefix(v[1], p.ExcludeOwner+"_") {
 			continue
 		}
-		if p.TimingClean && transcriptOverrun(p.DataRoot, v[0], v[1]) > overrunLimit {
+		if p.TimingClean && timelineUnreliable(mismatch, p.DataRoot, v[0], v[1]) {
 			continue
 		}
 		kept = append(kept, v)
@@ -123,6 +129,16 @@ func computeScore(ctx context.Context, st *store.Store, runID string, p scorePar
 		reviewsApplied = len(reviews)
 	}
 	return score.Score(golds, preds, p.Opt), scored, reviewsApplied, nil
+}
+
+// timelineUnreliable says whether a video's subtitle times cannot be compared
+// with player-time gold. An assessor's track_mismatch flag decides when set,
+// in both directions: they compared text and player, the overrun only hints.
+func timelineUnreliable(mismatch map[string]bool, data, provider, id string) bool {
+	if v, ok := mismatch[provider+":"+id]; ok {
+		return v
+	}
+	return transcriptOverrun(data, provider, id) > overrunLimit
 }
 
 // overrunLimit is the number of seconds by which the last subtitle cue may

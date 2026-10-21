@@ -113,3 +113,16 @@ CREATE TABLE IF NOT EXISTS video_offsets (
     set_at    TEXT NOT NULL,
     PRIMARY KEY (provider, native_id)
 );
+
+-- Per-video facts set by an assessor on the product's review page, imported
+-- from its export (latest value per video and flag). track_mismatch = the
+-- subtitle track does not match what the player shows (shifted or another cut).
+CREATE TABLE IF NOT EXISTS video_flags (
+    provider  TEXT NOT NULL,
+    native_id TEXT NOT NULL,
+    flag      TEXT NOT NULL,
+    value     INTEGER NOT NULL,
+    reviewer  TEXT NOT NULL,
+    set_at    TEXT NOT NULL,         -- RFC 3339 UTC, when the assessor set it
+    PRIMARY KEY (provider, native_id, flag)
+);

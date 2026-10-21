@@ -29,7 +29,7 @@ func runRank(args []string) error {
 	minSeconds := fs.Float64("min-seconds", 5, "drop predictions shorter than this")
 	goldMode := fs.String("gold", "reviewed", "all | assessor | reviewed")
 	excludeOwner := fs.String("exclude-owner", "", "second column: the same without videos of this owner part")
-	timingClean := fs.Bool("timing-clean", false, "drop videos whose subtitle track ends >3 s after the video (unreliable timeline)")
+	timingClean := fs.Bool("timing-clean", false, "drop videos with an unreliable timeline: assessor track_mismatch flag, else subtitle track ending >3 s after the video")
 	lambda := fs.Float64("lambda", 10, "a wrongly cut second counts this many times worse than a missed ad second")
 	if err := fs.Parse(args); err != nil {
 		return err

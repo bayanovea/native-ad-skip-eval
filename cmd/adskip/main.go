@@ -7,6 +7,7 @@
 //	adskip detect   -set v0 -model ...  # transcripts -> predictions (model calls, paid)
 //	adskip score    -run <id>           # predictions vs gold -> runs/<id>/score-*.json (offline)
 //	adskip review   -file <tsv> -run .. # eye-check verdicts -> gold_reviews (offline)
+//	adskip flags    -file <tsv>         # assessor video flags -> video_flags (offline)
 //
 // All private data (eval sets, subtitle cache, transcripts) lives under the data
 // root (-data, default ~/Web/data), outside the repository.
@@ -45,6 +46,8 @@ func main() {
 		err = runCeiling(os.Args[2:])
 	case "offset":
 		err = runOffset(os.Args[2:])
+	case "flags":
+		err = runFlags(os.Args[2:])
 	case "sheet":
 		err = runSheet(os.Args[2:])
 	case "compare":
@@ -73,6 +76,7 @@ func usage() {
   adskip rank     [-exclude-owner OWNER] [-lambda 10] label=run[,run...] ...
   adskip ceiling  [-min-contributors 2] [-set NAME]   # human-human ceiling in SCORE
   adskip offset   -id NATIVE_ID -seconds N -date YYYY-MM-DD [-note TEXT] [-data DIR]
+  adskip flags    -file VIDEO_FLAGS_TSV [-data DIR]
   adskip sheet    -runs RUN1,RUN2,... -out PATH.md [-min-seconds 5] [-data DIR]
   adskip compare  -a RUN -b RUN [-iou 0.5] [-min-seconds 5] [-data DIR]
   adskip review   -file VERDICTS_TSV -run RUN_ID -date YYYY-MM-DD [-reviewer NAME] [-data DIR]`)

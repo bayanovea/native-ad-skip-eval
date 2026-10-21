@@ -231,3 +231,53 @@ func (s *Store) Offsets(ctx context.Context) (map[string]float64, error) {
 	}
 	return out, rows.Err()
 }
+
+// VideoFlag is one assessor fact about a video (latest value per flag).
+type VideoFlag struct {
+	Provider, NativeID, Flag string
+	Value                    bool
+	Reviewer, SetAt          string
+}
+
+// SetFlags stores the flags; a stored value is replaced only by a newer one,
+// so re-importing an older export changes nothing. Returns the rows changed.
+func (s *Store) SetFlags(ctx context.Context, flags []VideoFlag) (int, error) {
+	tx, err := s.DB.BeginTx(ctx, nil)
+	if err != nil {
+		return 0, err
+	}
+	defer tx.Rollback()
+	n := 0
+	for _, f := range flags {
+		res, err := tx.ExecContext(ctx, `INSERT INTO video_flags (provider, native_id, flag, value, reviewer, set_at) VALUES (?, ?, ?, ?, ?, ?)
+			ON CONFLICT (provider, native_id, flag) DO UPDATE SET value = excluded.value, reviewer = excluded.reviewer, set_at = excluded.set_at
+			WHERE excluded.set_at > video_flags.set_at`,
+			f.Provider, f.NativeID, f.Flag, f.Value, f.Reviewer, f.SetAt)
+		if err != nil {
+			return 0, err
+		}
+		k, _ := res.RowsAffected()
+		n += int(k)
+	}
+	return n, tx.Commit()
+}
+
+// Flags returns the values of one flag keyed by "provider:native_id"; a video
+// nobody flagged is absent.
+func (s *Store) Flags(ctx context.Context, flag string) (map[string]bool, error) {
+	rows, err := s.DB.QueryContext(ctx, `SELECT provider, native_id, value FROM video_flags WHERE flag = ?`, flag)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	out := map[string]bool{}
+	for rows.Next() {
+		var p, id string
+		var v bool
+		if err := rows.Scan(&p, &id, &v); err != nil {
+			return nil, err
+		}
+		out[p+":"+id] = v
+	}
+	return out, rows.Err()
+}

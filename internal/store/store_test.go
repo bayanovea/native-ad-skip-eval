@@ -66,3 +66,33 @@ func TestLabelNeedsKnownVideo(t *testing.T) {
 		t.Fatal("expected a foreign key error for a label without its video")
 	}
 }
+
+func TestSetFlagsKeepsNewest(t *testing.T) {
+	s, err := Open(filepath.Join(t.TempDir(), "adskip.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer s.Close()
+	ctx := context.Background()
+	newer := VideoFlag{Provider: "main", NativeID: "c1_1001", Flag: "track_mismatch", Value: true, Reviewer: "a", SetAt: "2026-10-20T10:00:00Z"}
+	older := newer
+	older.Value, older.SetAt = false, "2026-10-19T10:00:00Z"
+	if n, err := s.SetFlags(ctx, []VideoFlag{newer}); err != nil || n != 1 {
+		t.Fatalf("first import: %d %v", n, err)
+	}
+	if n, err := s.SetFlags(ctx, []VideoFlag{older}); err != nil || n != 0 {
+		t.Fatalf("older value must not replace newer: %d %v", n, err)
+	}
+	got, err := s.Flags(ctx, "track_mismatch")
+	if err != nil || len(got) != 1 || !got["main:c1_1001"] {
+		t.Fatalf("flags %v %v", got, err)
+	}
+	later := newer
+	later.Value, later.SetAt = false, "2026-10-21T10:00:00Z"
+	if _, err := s.SetFlags(ctx, []VideoFlag{later}); err != nil {
+		t.Fatal(err)
+	}
+	if got, _ := s.Flags(ctx, "track_mismatch"); got["main:c1_1001"] {
+		t.Fatalf("newer false not applied: %v", got)
+	}
+}
