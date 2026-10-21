@@ -1,19 +1,24 @@
 # ad-skip-segment-eval
 
-Can an LLM find sponsor segments in long Russian-language videos from the auto-generated
-subtitles alone, and is it good enough to skip them without asking the viewer? This repository
-is the measurable half of a private product: a browser extension and API where viewers mark ad
-segments in videos and others skip them (~12.5k human markups on ~6.3k videos, 10k users).
-Here live the **detector**, the **eval harness** that scores it against the human labels, the
-versioned prompts and the aggregate numbers of every run. Written in Go. The dataset (video ids,
-labels, transcripts, per-video predictions) stays private, so this README is the write-up, not a
-tutorial.
+Can an LLM find sponsor segments in long videos from the auto-generated subtitles alone, well
+enough to skip them without asking the viewer? This is the measurable half of a private product
+(a browser extension where viewers mark ad segments in videos and others skip them, 10k users):
+the **detector**, the **eval harness** that scores it against ~12.5k human labels, the versioned
+prompts and the numbers of every run. Go. The dataset stays private, so this README is the
+write-up, not a tutorial.
 
-**Headline (held-out set, 2026-10-18):** on 217 videos the detector had never been tuned on,
-Claude Sonnet 5.5 removes **44% of all ad time** and wrongly cuts **1.3 seconds of content per
-hour of video**, at **$0.025 per video**. That passes the release gate I had fixed before looking
-at the set (SCORE ≥ 0.15, wrongly cut ≤ 6 s/h). The same run scored against the raw human labels
-looks like a failure (SCORE −0.89); most of that gap was ads the humans had not marked.
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/results-dark.svg">
+  <img alt="Results: 44% of ad time removed, 1.3 s/h of content wrongly cut, $0.025 per video on 217 unseen videos; prompt iterations; raw vs reviewed gold" src="docs/results-light.svg">
+</picture>
+
+**→ [How the detector got here](docs/iterations.md):** fifteen measured steps, what each changed,
+what was kept and what was rejected.
+
+The headline is one run on videos the detector was never tuned on, and it passes the release gate
+fixed before that set was opened (SCORE ≥ 0.15, wrongly cut ≤ 6 s/h). The same run scored against
+the raw human labels looks like a failure (−0.89): most of the gap was ads the humans had not
+marked, which is the main finding of the project.
 
 ## What the project answers
 
