@@ -40,7 +40,7 @@ the first, `modernc.org/sqlite`, no cgo).
   `false` never keeps an overrun video (it covers only the items they checked). Flags say nothing about verdicts.
 - `prompts/vN.md` — versioned prompts; the file name is the version, the sha256 is in each run's config.
 - `internal/netguard` — external-IP check; fetch refuses to run from a home IP.
-- `internal/policy` — repo-wide tests; `TestNoVideoIDsInTrackedFiles` fails on any video id in tracked files.
+- `internal/policy` — repo-wide tests; `TestNoVideoIDsInTrackedFiles` fails on any video or channel id in tracked files and on a long number in a tracked file name.
 - `runs/` — eval runs (`<date>-<model>-<prompt-vN>/`): `config.json` (model, effort, prompt sha,
   prices used), `prompt.md`, `metrics.json` (aggregates). Per-video calls and predictions go to
   `adskip.db` (`runs`, `calls`, `predictions`). Predictions are stored raw; min-duration and

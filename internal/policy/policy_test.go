@@ -12,11 +12,17 @@ import (
 	"testing"
 )
 
-// nativeIDs matches real platform video ids. "-<owner>_<video>" with long
-// numeric parts. Placeholders in docs use short owners ("c1_1001") on purpose.
+// nativeIDs matches real platform ids. "[-]<owner>_<video>" with long numeric
+// parts, and a bare channel id "-<owner>" (e.g. an -exclude-owner value).
+// Placeholders in docs use short owners ("c1_1001") on purpose.
 var nativeIDs = []*regexp.Regexp{
-	regexp.MustCompile(`(^|[^0-9A-Za-z])-[0-9]{5,}_[0-9]{6,}`), // video id
+	regexp.MustCompile(`(^|[^0-9A-Za-z.])-?[0-9]{5,}_[0-9]{6,}`),  // video id
+	regexp.MustCompile(`(^|[^0-9A-Za-z_.])-[0-9]{5,}([^0-9_]|$)`), // owner id
 }
+
+// longNumberInPath catches an id baked into a generated file name; no tracked
+// path needs five digits in a row.
+var longNumberInPath = regexp.MustCompile(`[0-9]{5,}`)
 
 // TestNoVideoIDsInTrackedFiles guards the data policy: video ids identify
 // videos and contributors of the private product and never enter the repo.
@@ -32,6 +38,9 @@ func TestNoVideoIDsInTrackedFiles(t *testing.T) {
 	for _, rel := range strings.Split(string(out), "\x00") {
 		if rel == "" {
 			continue
+		}
+		if longNumberInPath.MatchString(rel) {
+			hits = append(hits, rel+" (file name)")
 		}
 		data, err := os.ReadFile(filepath.Join(root, rel))
 		if err != nil {

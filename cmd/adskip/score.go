@@ -77,7 +77,7 @@ func runScore(args []string) error {
 
 	tag := fmt.Sprintf("s%g-c%s-iou%g-%s", *minSeconds, orDefault(*minConf, "any"), *iou, *goldMode)
 	if *excludeOwner != "" {
-		tag += "-ex" + strings.TrimPrefix(*excludeOwner, "-")
+		tag += "-exowner" // not the owner id itself: it identifies a channel of the private set
 	}
 	if *videosFile != "" {
 		tag += "-v" + strings.TrimSuffix(filepath.Base(*videosFile), filepath.Ext(*videosFile))
