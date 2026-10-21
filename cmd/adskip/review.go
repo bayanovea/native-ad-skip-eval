@@ -16,6 +16,7 @@ import (
 // runReview loads an eye-check sheet's verdicts (TSV) into gold_reviews.
 //
 //	adskip review -file <data>/review/2026-10-11-opus-v1.tsv -run 2026-10-11-claude-opus-5-5-v1 -reviewer user -date 2026-10-12
+//	adskip review -misses -file <data>/review/2026-10-22-dev-misses.verdicts.tsv -run misses-dev-v2.2-2026-10-22 -reviewer Gam -date 2026-10-22
 //
 // TSV columns: provider, native_id, category, start, end, verdict, item, note.
 func runReview(args []string) error {
@@ -25,6 +26,7 @@ func runReview(args []string) error {
 	reviewer := fs.String("reviewer", "user", "who made the verdicts")
 	date := fs.String("date", "", "date of the sheet, YYYY-MM-DD (required)")
 	data := fs.String("data", defaultDataDir(), "private data root")
+	misses := fs.Bool("misses", false, "the sheet came from sheet -misses (human-labelled stretches): ad → gold_valid, not an ad → gold_wrong")
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
@@ -58,7 +60,15 @@ func runReview(args []string) error {
 		if !valid[cols[5]] {
 			return fmt.Errorf("line %d: unknown verdict %q", line, cols[5])
 		}
-		r := store.GoldReview{Provider: cols[0], NativeID: cols[1], Category: cols[2], Start: start, End: end, Verdict: cols[5], Item: cols[6],
+		verdict := cols[5]
+		if *misses {
+			// The product export reads every sheet as model-flagged stretches.
+			verdict = map[string]string{score.VerdictGoldMissing: score.VerdictGoldValid, score.VerdictModelWrong: score.VerdictGoldWrong}[verdict]
+			if verdict == "" {
+				verdict = cols[5]
+			}
+		}
+		r := store.GoldReview{Provider: cols[0], NativeID: cols[1], Category: cols[2], Start: start, End: end, Verdict: verdict, Item: cols[6],
 			Reviewer: *reviewer, ReviewedAt: *date, SourceRun: *runID}
 		if len(cols) > 7 {
 			r.Note = cols[7]

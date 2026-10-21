@@ -16,9 +16,19 @@ import (
 	"github.com/bayanovea/ad-skip-segment-eval/internal/store"
 )
 
+// sheetItem is one stretch of a review sheet.
+type sheetItem struct {
+	video      string
+	start, end float64
+	cats       map[string]bool
+	runs       map[string]bool
+	gold       map[string]bool // conflicts mode: the categories the humans used here
+}
+
 // runSheet builds a blind review sheet from the union of several runs.
 //
 //	adskip sheet -runs RUN1,RUN2,... -out <data>/review/2026-10-12-blind.md
+//	adskip sheet -misses -runs RUN1,RUN2 -out <data>/review/2026-10-22-dev-misses.md
 //
 // An item is a stretch of a video that at least one run flagged and that the
 // reviewed gold does not cover yet. Items are clustered across runs, shuffled
@@ -36,6 +46,7 @@ func runSheet(args []string) error {
 	out := fs.String("out", "", "output .md path, outside the repo (required)")
 	minSec := fs.Float64("min-seconds", 5, "ignore predictions shorter than this")
 	conflicts := fs.Bool("conflicts", false, "category-conflict sheet: stretches where a run's category differs from the human one (instead of uncovered stretches)")
+	misses := fs.Bool("misses", false, "miss sheet: human-labelled ad stretches no run found under the product thresholds (load its verdicts with review -misses)")
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
@@ -82,15 +93,11 @@ func runSheet(args []string) error {
 		return err
 	}
 
-	type item struct {
-		video      string
-		start, end float64
-		cats       map[string]bool
-		runs       map[string]bool
-		gold       map[string]bool // conflicts mode: the categories the humans used here
-	}
-	var items []item
+	var items []sheetItem
 	for id, fl := range byVideo {
+		if *misses {
+			break
+		}
 		labels, err := st.Labels(ctx, *providerName, id)
 		if err != nil {
 			return err
@@ -146,7 +153,7 @@ func runSheet(args []string) error {
 			}
 		}
 		sort.Slice(open, func(i, j int) bool { return open[i].s < open[j].s })
-		var cur *item
+		var cur *sheetItem
 		for _, f := range open {
 			if cur != nil && f.s <= cur.end {
 				if f.e > cur.end {
@@ -161,13 +168,18 @@ func runSheet(args []string) error {
 			if cur != nil {
 				items = append(items, *cur)
 			}
-			cur = &item{video: id, start: f.s, end: f.e, cats: map[string]bool{f.cat: true}, runs: map[string]bool{f.run: true}, gold: map[string]bool{}}
+			cur = &sheetItem{video: id, start: f.s, end: f.e, cats: map[string]bool{f.cat: true}, runs: map[string]bool{f.run: true}, gold: map[string]bool{}}
 			for c := range goldCats[f.s] {
 				cur.gold[c] = true
 			}
 		}
 		if cur != nil {
 			items = append(items, *cur)
+		}
+	}
+	if *misses {
+		if items, err = missItems(ctx, st, *data, *providerName, runs, *minSec, offsets, reviews); err != nil {
+			return err
 		}
 	}
 	sort.Slice(items, func(i, j int) bool {
@@ -179,7 +191,9 @@ func runSheet(args []string) error {
 		return err
 	}
 	var md, key strings.Builder
-	if *conflicts {
+	if *misses {
+		fmt.Fprintf(&md, "# Miss review sheet (private, not in the repo)\n\nFor every item, write one verdict: **sponsor** / **self_promotion** / **not an ad** / **unclear** (+ one line why).\nThe stretch is labelled as an ad by humans and no detector run found it; stretches with almost no subtitle text are left out. The source is not shown on the review page. Times are player times.\n\n")
+	} else if *conflicts {
 		fmt.Fprintf(&md, "# Category check sheet (private, not in the repo)\n\nThe detector and the human labels disagree about the CATEGORY of the same stretch. Decide by the rule: **sponsor = an outside party paid the author for this piece; self_promotion = the speaker (author, their studio, their guest) promotes themselves, nobody outside paid.** For every item write one verdict: **sponsor** / **self_promotion** / **not an ad** / **unclear** (+ one line why). Times are player times.\n\n")
 	} else {
 		fmt.Fprintf(&md, "# Blind review sheet (private, not in the repo)\n\nFor every item, write one verdict: **sponsor** / **self_promotion** / **not an ad** / **unclear** (+ one line why).\nThe stretch was flagged by at least one automatic detector run and is not covered by any human label or earlier verdict. The source is hidden on purpose. Times are player times.\n\n")

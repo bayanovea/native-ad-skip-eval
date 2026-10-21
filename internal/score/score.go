@@ -26,6 +26,11 @@ const AnyAd = "any_ad"
 // Confidence levels in rank order; the detector emits exactly these strings.
 var confidenceRank = map[string]int{"low": 0, "medium": 1, "high": 2}
 
+// ConfidenceAtLeast reports whether conf reaches min ("" passes everything).
+func ConfidenceAtLeast(conf, min string) bool {
+	return min == "" || confidenceRank[conf] >= confidenceRank[min]
+}
+
 // Gold is one human interval after import.
 type Gold struct {
 	Video       string // provider:native_id
