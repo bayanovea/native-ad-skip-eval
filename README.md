@@ -149,7 +149,9 @@ set. Limit: one number hides trade-offs; the detailed table stays one flag away.
 
 **The detector does not know the store.** `internal/detector` imports only the transcript
 packages so the same code can run inside the product against its own database; the SQLite eval
-store is for offline scoring only. The provider layer (`internal/provider`) is the only
+store is for offline scoring only. The product runs a copy of these packages and the prompt
+(synced from a committed checkout of this repo), so detector and prompt changes are made and
+scored here first. The provider layer (`internal/provider`) is the only
 platform-specific code; everything is keyed by `(provider, native_id)`.
 
 **Privacy is a test, not a convention.** Nothing that identifies a video or a contributor enters

@@ -20,7 +20,7 @@ the first, `modernc.org/sqlite`, no cgo).
   every line and collects rejects instead of stopping at the first.
 - `internal/detector` — the detector: prompt loading, transcript rendering (numbered cues), the
   output schema, validation (cue indices, no overlaps) and the `Client` interface. **Runs inside
-  the product later, so it imports only `transcript`/`vtt`.** `anthropic.go` is the Claude API
+  the product, so it imports only `transcript`/`vtt`.** `anthropic.go` is the Claude API
   client (Go SDK, structured output via JSON schema). The model returns cue indices, never
   timestamps; `Resolve` maps them to seconds.
 - `internal/score` — the scorer: merges gold per video and category (union across contributors),
@@ -47,6 +47,25 @@ the first, `modernc.org/sqlite`, no cgo).
   `adskip.db` (`runs`, `calls`, `predictions`). Predictions are stored raw; min-duration and
   confidence thresholds are applied by the scorer, so one paid run is scored under many settings.
   A run resumes: `ok`/`no_transcript` videos are skipped, failed ones retried; `-force` restarts.
+
+## The product's copy (since 2026-10-22)
+
+The product (a private repo, AI-first segments) runs `detector`, `transcript`, `vtt`,
+`provider`, `ytdlp` and the detector prompt as a **copy**: `internal/` is not importable from
+another module and the product's CI builds from its own tree only, so
+`scripts/sync-detector.sh <this checkout>` there copies the five packages
+into its `ai/` (import path rewritten, `claudecli.go` and the key-file lookup dropped) and records
+this repo's commit in `ai/SOURCE`. It refuses a checkout with uncommitted changes.
+
+- **Changes land here first.** Prompt and detector changes are made, scored and committed in this
+  repo, then synced; the product never edits its copy. A new prompt file needs the product's
+  `AI_PROMPT` (or default) changed too; the prompt sha in its `AI-runs table` rows tells which videos
+  ran under which.
+- Keep the five packages free of `store`, `netguard` and anything outside stdlib, each other and the
+  Anthropic SDK (`TestProductPackagesImportOnlyEachOther`). A changed SDK version in `go.mod` is
+  re-vendored in the product.
+- The product's judge prompt (`ai/prompts/judge-v1.md` there) is product-owned for now; it and the
+  detector prompt are iterated here against the `ai-judge-*` review verdicts the product exports.
 
 ## Data policy (decided 2026-10-10)
 
