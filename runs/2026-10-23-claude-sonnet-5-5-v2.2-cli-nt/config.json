@@ -1,0 +1,21 @@
+{
+  "id": "2026-10-23-claude-sonnet-5-5-v2.2-cli-nt",
+  "created_at": "2026-10-23T15:36:14Z",
+  "model": "claude-sonnet-5-5",
+  "effort": "medium",
+  "no_times": true,
+  "transport": "cli",
+  "price_factor": 1,
+  "cli_version": "2.1.285 (Claude Code)",
+  "prompt_version": "v2.2",
+  "prompt_sha256": "08ab344d0b801c7d81819952d88753c849b92bdda1c0c76c92e06054165dd496",
+  "evalset": "heldout",
+  "provider": "main",
+  "prices_usd_per_mtok": {
+    "Input": 2,
+    "Output": 10,
+    "CacheRead": 0.2,
+    "CacheWrite": 2.5
+  },
+  "min_segment_seconds_for_scoring": 5
+}
