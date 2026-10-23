@@ -31,8 +31,9 @@ the first, `modernc.org/sqlite`, no cgo).
   `runs/<id>/score-<settings>.json` (aggregates only); `-list` prints per-video detail to stdout.
 - `internal/score/review.go` + `gold_reviews` table — eye-check verdicts (`gold_missing`, `gold_wrong`,
   `definition_unclear`, `model_wrong`, `gold_valid`) imported with `adskip review` from a private TSV; raw
-  labels are never edited. `score -gold reviewed` applies them: missing ads added, wrong labels removed,
-  unclear regions excluded from both sides. **A review sheet built from one run's disagreements favours
+  labels are never edited. `score -gold reviewed` applies them: missing ads added, the reviewed stretch cut out of wrong labels,
+  unclear stretches cut out of both sides (only the stretch, never the whole label: a miss item is the
+  uncovered rest of a label). **A review sheet built from one run's disagreements favours
   that run** (its own predictions become gold): report raw and reviewed side by side and say which run
   the sheet came from. `sheet -misses` asks the other way round (human-labelled ad stretches no run keeps); the
   product export reads every sheet as model-flagged, so load its verdicts with `review -misses`.

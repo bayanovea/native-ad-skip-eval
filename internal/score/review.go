@@ -26,12 +26,17 @@ type Review struct {
 }
 
 // ApplyReviews returns gold and predictions adjusted by the verdicts. It only
-// touches intervals of the same video and category that overlap a review.
+// touches intervals of the same video and category that overlap a review, and
+// only the reviewed stretch of them: a gold_wrong or definition_unclear verdict
+// on the uncovered rest of a label (a miss sheet item) must not throw away the
+// part the model did find, or that prediction turns into a false positive.
 func ApplyReviews(golds []Gold, preds []Pred, reviews []Review) ([]Gold, []Pred) {
 	var outG []Gold
 	for _, g := range golds {
-		if !overlapsAny(g.Video, g.Category, g.Start, g.End, reviews, VerdictGoldWrong, VerdictDefinitionUnclear) {
-			outG = append(outG, g)
+		for _, s := range cut(g.Video, g.Category, g.Start, g.End, reviews, VerdictGoldWrong, VerdictDefinitionUnclear) {
+			c := g
+			c.Start, c.End = s[0], s[1]
+			outG = append(outG, c)
 		}
 	}
 	for _, r := range reviews {
@@ -41,26 +46,39 @@ func ApplyReviews(golds []Gold, preds []Pred, reviews []Review) ([]Gold, []Pred)
 	}
 	var outP []Pred
 	for _, p := range preds {
-		if !overlapsAny(p.Video, p.Category, p.Start, p.End, reviews, VerdictDefinitionUnclear) {
-			outP = append(outP, p)
+		for _, s := range cut(p.Video, p.Category, p.Start, p.End, reviews, VerdictDefinitionUnclear) {
+			c := p
+			c.Start, c.End = s[0], s[1]
+			outP = append(outP, c)
 		}
 	}
 	return outG, outP
 }
 
-func overlapsAny(video, cat string, start, end float64, reviews []Review, verdicts ...string) bool {
+// cut subtracts every matching review's stretch from [start, end) and returns
+// what is left, in order; nothing when the reviews cover it.
+func cut(video, cat string, start, end float64, reviews []Review, verdicts ...string) [][2]float64 {
+	left := [][2]float64{{start, end}}
 	for _, r := range reviews {
-		if r.Video != video || r.Category != cat {
+		if r.Video != video || r.Category != cat || !hasVerdict(r.Verdict, verdicts) {
 			continue
 		}
-		if !hasVerdict(r.Verdict, verdicts) {
-			continue
+		var next [][2]float64
+		for _, s := range left {
+			if s[0] >= r.End || r.Start >= s[1] {
+				next = append(next, s)
+				continue
+			}
+			if s[0] < r.Start {
+				next = append(next, [2]float64{s[0], r.Start})
+			}
+			if r.End < s[1] {
+				next = append(next, [2]float64{r.End, s[1]})
+			}
 		}
-		if start < r.End && r.Start < end {
-			return true
-		}
+		left = next
 	}
-	return false
+	return left
 }
 
 func hasVerdict(v string, vs []string) bool {

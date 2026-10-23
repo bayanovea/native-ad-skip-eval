@@ -56,7 +56,7 @@ run produced it. Raw labels are never edited; verdicts (`gold_missing`, `gold_wr
 | Set | Videos | Model, prompt | SCORE | ad time removed | content wrongly cut | $ / video |
 |---|---|---|---|---|---|---|
 | **held-out** (frozen before any prompt work, scored once) | 217 | Sonnet 5.5, v2.1, batch | **0.34** | 44% | 1.3 s/h | 0.025 |
-| dev-v1 | 69 | Sonnet 5.5, **v2.2** (skit lead-in belongs to the ad), batch | 0.31 (0.26–0.37, n=2) | 61% | 3.7 s/h | 0.022 |
+| dev-v1 | 69 | Sonnet 5.5, **v2.2** (skit lead-in belongs to the ad), batch | 0.33 (0.27–0.39, n=2) | 65% | 3.8 s/h | 0.022 |
 | dev-v1 (69 videos, 40 channels) | 69 | Sonnet 5.5, v2.1, batch | 0.20 (0.17–0.23, n=2) | 56% | 5.0 s/h | 0.022 |
 | dev-v1, thinking + high effort | 69 | Sonnet 5.5, v2.1, batch | 0.24 (0.21–0.27, n=2) | 55% | 5.2 s/h | 0.022 |
 | v0 (first 18 videos) | 18 | Opus 5.5, v1, API | 0.62 | — | — | 0.17 |
@@ -257,8 +257,9 @@ and in seconds, precision per confidence level, boundary error of matched pairs 
 p50/p90 absolute, share within 2 / 5 / 10 s), SCORE.
 
 `-gold reviewed` applies verdicts on top of the raw labels: `gold_missing` adds an interval,
-`gold_wrong` removes the overlapping labels, `definition_unclear` excludes the region from both
-sides, `model_wrong` and `gold_valid` change nothing. `-exclude-owner` drops one channel;
+`gold_wrong` cuts the reviewed stretch out of the overlapping labels, `definition_unclear` cuts it out of
+both sides (only the stretch: a verdict on the uncovered rest of a label must not drop the part the model
+found), `model_wrong` and `gold_valid` change nothing. `-exclude-owner` drops one channel;
 `-timing-clean` drops videos with a subtitle track that ends after the video or an assessor's
 "track ≠ video" flag; `-videos FILE` scores a listed subset.
 
