@@ -4,8 +4,8 @@ import (
 	"context"
 	"path/filepath"
 
-	"github.com/bayanovea/ad-skip-segment-eval/internal/score"
-	"github.com/bayanovea/ad-skip-segment-eval/internal/store"
+	"github.com/bayanovea/native-ad-skip-eval/internal/score"
+	"github.com/bayanovea/native-ad-skip-eval/internal/store"
 )
 
 // missRuns is what the key.tsv "runs_flagging" column says for a miss item:

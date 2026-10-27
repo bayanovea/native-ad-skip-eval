@@ -5,7 +5,7 @@ import (
 	"flag"
 	"fmt"
 
-	"github.com/bayanovea/ad-skip-segment-eval/internal/store"
+	"github.com/bayanovea/native-ad-skip-eval/internal/store"
 )
 
 // runOffset records a per-video timeline offset.

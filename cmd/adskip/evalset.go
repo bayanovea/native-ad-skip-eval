@@ -11,7 +11,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/bayanovea/ad-skip-segment-eval/internal/store"
+	"github.com/bayanovea/native-ad-skip-eval/internal/store"
 )
 
 // heldoutBuckets / heldoutOf: a video is held out when its hash bucket (of 5)

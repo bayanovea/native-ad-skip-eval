@@ -21,7 +21,7 @@ func TestProductPackagesImportOnlyEachOther(t *testing.T) {
 	root := repoRoot(t)
 	allowed := map[string]bool{}
 	for _, p := range productPackages {
-		allowed["github.com/bayanovea/ad-skip-segment-eval/internal/"+p] = true
+		allowed["github.com/bayanovea/native-ad-skip-eval/internal/"+p] = true
 	}
 	var hits []string
 	for _, p := range productPackages {

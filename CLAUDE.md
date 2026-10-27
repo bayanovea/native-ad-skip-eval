@@ -1,4 +1,4 @@
-# ad-skip-segment-eval
+# native-ad-skip-eval
 
 LLM sponsor-segment detector for long videos (one platform at a time, others behind a provider
 interface) plus the eval harness that measures it against crowdsourced human labels. Go,
@@ -77,7 +77,7 @@ this repo's commit in `ai/SOURCE`. It refuses a checkout with uncommitted change
   `evalsets/<name>.txt`, `transcripts/<provider>/<id>.{info.json,<lang>.vtt,jsonl}`,
   `adskip.db` (SQLite: gold labels now; runs, predictions, metrics later), `gold-v1.jsonl` (the export). Files for blobs, SQLite for what gets joined.
 - The data root is outside the repo on purpose; `.gitignore` is a second line, the policy test is the first.
-- Home IPs live in `~/.config/ad-skip-segment-eval/home_ips`, outside the repo. Never hard-code an IP.
+- Home IPs live in `~/.config/native-ad-skip-eval/home_ips`, outside the repo. Never hard-code an IP.
 - No platform account, no cookies. Fetching goes through a VPN or `--proxy`; the tool fails closed.
 
 ## Eval sets

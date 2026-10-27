@@ -11,9 +11,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/bayanovea/ad-skip-segment-eval/internal/netguard"
-	"github.com/bayanovea/ad-skip-segment-eval/internal/store"
-	"github.com/bayanovea/ad-skip-segment-eval/internal/transcript"
+	"github.com/bayanovea/native-ad-skip-eval/internal/netguard"
+	"github.com/bayanovea/native-ad-skip-eval/internal/store"
+	"github.com/bayanovea/native-ad-skip-eval/internal/transcript"
 )
 
 // runEvalsetClean builds the clean-video slice: videos from the same channels as
@@ -39,7 +39,7 @@ func runEvalsetClean(kind string, args []string) error {
 	minMin := fs.Float64("min-minutes", 10, "clean: skip videos shorter than this")
 	maxMin := fs.Float64("max-minutes", 60, "clean: skip videos longer than this")
 	bin := fs.String("yt-dlp", envOr("YT_DLP", "yt-dlp"), "yt-dlp binary")
-	homeIPs := fs.String("home-ips", home(".config/ad-skip-segment-eval/home_ips"), "file listing IPs the listing must never run from")
+	homeIPs := fs.String("home-ips", home(".config/native-ad-skip-eval/home_ips"), "file listing IPs the listing must never run from")
 	if err := fs.Parse(args); err != nil {
 		return err
 	}

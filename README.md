@@ -1,4 +1,4 @@
-# ad-skip-segment-eval
+# native-ad-skip-eval
 
 Can an LLM find sponsor segments in long videos from the auto-generated subtitles alone, well
 enough to skip them without asking the viewer? This is the measurable half of a private product
@@ -173,7 +173,7 @@ of the same configuration.
 The data is private, so a stranger cannot reproduce the table. What is checkable without it:
 
 ```sh
-git clone https://github.com/bayanovea/ad-skip-segment-eval && cd ad-skip-segment-eval
+git clone https://github.com/bayanovea/native-ad-skip-eval && cd native-ad-skip-eval
 go build -o adskip ./cmd/adskip
 go test ./...          # scorer, validation, VTT collapse, gold import, policy scan; no network
 ./adskip               # every command and flag

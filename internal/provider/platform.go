@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/bayanovea/ad-skip-segment-eval/internal/transcript"
-	"github.com/bayanovea/ad-skip-segment-eval/internal/ytdlp"
+	"github.com/bayanovea/native-ad-skip-eval/internal/transcript"
+	"github.com/bayanovea/native-ad-skip-eval/internal/ytdlp"
 )
 
 // Native ids look like "<owner>_<video>".

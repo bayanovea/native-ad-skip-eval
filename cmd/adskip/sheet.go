@@ -11,9 +11,9 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/bayanovea/ad-skip-segment-eval/internal/provider"
-	"github.com/bayanovea/ad-skip-segment-eval/internal/score"
-	"github.com/bayanovea/ad-skip-segment-eval/internal/store"
+	"github.com/bayanovea/native-ad-skip-eval/internal/provider"
+	"github.com/bayanovea/native-ad-skip-eval/internal/score"
+	"github.com/bayanovea/native-ad-skip-eval/internal/store"
 )
 
 // sheetItem is one stretch of a review sheet.

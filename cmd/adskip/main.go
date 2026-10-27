@@ -1,4 +1,4 @@
-// Command adskip is the CLI for ad-skip-segment-eval.
+// Command adskip is the CLI for native-ad-skip-eval.
 //
 //	adskip fetch    -set c2-spike       # subtitles -> transcripts (network, guarded)
 //	adskip collapse -id <native_id>     # cached VTT -> transcript (offline)

@@ -13,11 +13,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/bayanovea/ad-skip-segment-eval/internal/netguard"
-	"github.com/bayanovea/ad-skip-segment-eval/internal/provider"
-	"github.com/bayanovea/ad-skip-segment-eval/internal/transcript"
-	"github.com/bayanovea/ad-skip-segment-eval/internal/vtt"
-	"github.com/bayanovea/ad-skip-segment-eval/internal/ytdlp"
+	"github.com/bayanovea/native-ad-skip-eval/internal/netguard"
+	"github.com/bayanovea/native-ad-skip-eval/internal/provider"
+	"github.com/bayanovea/native-ad-skip-eval/internal/transcript"
+	"github.com/bayanovea/native-ad-skip-eval/internal/vtt"
+	"github.com/bayanovea/native-ad-skip-eval/internal/ytdlp"
 )
 
 type fetchOpts struct {
@@ -43,7 +43,7 @@ func runFetch(args []string) error {
 	idsFile := fs.String("ids", "", "file with one native_id per line (# comments allowed)")
 	fs.StringVar(&o.data, "data", defaultDataDir(), "private data root (eval sets, subtitle cache, transcripts); never inside the repo")
 	fs.StringVar(&o.lang, "lang", "ru", "subtitle language")
-	fs.StringVar(&o.homeIPs, "home-ips", home(".config/ad-skip-segment-eval/home_ips"), "file listing IPs fetch must never run from")
+	fs.StringVar(&o.homeIPs, "home-ips", home(".config/native-ad-skip-eval/home_ips"), "file listing IPs fetch must never run from")
 	fs.StringVar(&o.bin, "yt-dlp", envOr("YT_DLP", "yt-dlp"), "yt-dlp binary")
 	fs.StringVar(&o.proxy, "proxy", "", "passed to yt-dlp --proxy")
 	fs.IntVar(&o.retries, "retries", 3, "attempts per yt-dlp call")
