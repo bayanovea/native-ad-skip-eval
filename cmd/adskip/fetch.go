@@ -38,7 +38,7 @@ type result struct {
 func runFetch(args []string) error {
 	fs := flag.NewFlagSet("fetch", flag.ContinueOnError)
 	var o fetchOpts
-	providerName := fs.String("provider", "main", "video platform: "+strings.Join(provider.Names(), ", "))
+	providerName := providerFlag(fs)
 	set := fs.String("set", "", "eval set name: reads <data>/evalsets/<name>.txt")
 	idsFile := fs.String("ids", "", "file with one native_id per line (# comments allowed)")
 	fs.StringVar(&o.data, "data", defaultDataDir(), "private data root (eval sets, subtitle cache, transcripts); never inside the repo")
@@ -51,7 +51,7 @@ func runFetch(args []string) error {
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
-	p, err := provider.Lookup(*providerName)
+	p, err := resolveProvider(providerName)
 	if err != nil {
 		return err
 	}

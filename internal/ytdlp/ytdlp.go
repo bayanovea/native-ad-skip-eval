@@ -17,7 +17,7 @@ import (
 
 // Track is one subtitle track as reported by yt-dlp.
 //
-// The platform's yt-dlp extractor reports two entries per language: one derived from the stream
+// An extractor may report two entries per language: one derived from the stream
 // manifest (ManifestURL set, Ext "vtt") and one from the player's subtitle list,
 // where Ext carries the player's label ("vtt" or "Ru AUTO") rather than a format.
 type Track struct {

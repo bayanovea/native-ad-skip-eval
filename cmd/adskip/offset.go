@@ -16,12 +16,15 @@ import (
 func runOffset(args []string) error {
 	fs := flag.NewFlagSet("offset", flag.ContinueOnError)
 	data := fs.String("data", defaultDataDir(), "private data root")
-	provider := fs.String("provider", "main", "video platform")
+	providerName := providerFlag(fs)
 	id := fs.String("id", "", "native id (required)")
 	seconds := fs.Float64("seconds", 0, "transcript time minus player time")
 	note := fs.String("note", "", "evidence, e.g. which items showed it")
 	date := fs.String("date", "", "date, YYYY-MM-DD (required)")
 	if err := fs.Parse(args); err != nil {
+		return err
+	}
+	if _, err := resolveProvider(providerName); err != nil {
 		return err
 	}
 	if *id == "" || *date == "" {
@@ -32,9 +35,9 @@ func runOffset(args []string) error {
 		return err
 	}
 	defer st.Close()
-	if err := st.SetOffset(context.Background(), *provider, *id, *seconds, *note, *date); err != nil {
+	if err := st.SetOffset(context.Background(), *providerName, *id, *seconds, *note, *date); err != nil {
 		return err
 	}
-	fmt.Printf("offset %+.1f s set for %s:%s\n", *seconds, *provider, *id)
+	fmt.Printf("offset %+.1f s set for %s:%s\n", *seconds, *providerName, *id)
 	return nil
 }

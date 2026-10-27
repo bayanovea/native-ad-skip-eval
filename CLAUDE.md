@@ -1,7 +1,7 @@
 # native-ad-skip-eval
 
-LLM sponsor-segment detector for long videos (one platform at a time, others behind a provider
-interface) plus the eval harness that measures it against crowdsourced human labels. Go,
+LLM sponsor-segment detector for long videos (one platform at a time, each a config entry behind
+a provider interface) plus the eval harness that measures it against crowdsourced human labels. Go,
 standard library only unless a dependency earns its place (SQLite for labels and runs will be
 the first, `modernc.org/sqlite`, no cgo).
 
@@ -11,8 +11,10 @@ the first, `modernc.org/sqlite`, no cgo).
 - `internal/vtt` — WebVTT parsing and collapsing of rolling captions into plain cues.
 - `internal/transcript` — the JSONL transcript format (meta line + cue lines).
 - `internal/ytdlp` — thin wrapper over the `yt-dlp` binary with retries.
-- `internal/provider` — the only platform-specific code: `Provider` interface (name, video URL,
-  subtitle-track pick from yt-dlp output), registry, `platform.go`. New platform = new file + `Register`.
+- `internal/provider` — the only platform-specific code: `Provider` interface (name, URL templates,
+  subtitle-track pick from yt-dlp output), `platform.go`. Platforms are `Def`s loaded from
+  `~/.config/native-ad-skip-eval/providers.json` (`ADSKIP_PROVIDERS`); the repo never names one.
+  New platform = a config entry.
 - `internal/store` — SQLite eval store (`adskip.db` in the data root; `modernc.org/sqlite`, no cgo),
   schema in `schema.sql`. **Offline evaluation only.** The detector must never import it: in the
   product the same detector runs against the product database. Only the CLI and the scorer use it.
@@ -60,7 +62,7 @@ this repo's commit in `ai/SOURCE`. It refuses a checkout with uncommitted change
 
 - **Changes land here first.** Prompt and detector changes are made, scored and committed in this
   repo, then synced; the product never edits its copy. A new prompt file needs the product's
-  `AI_PROMPT` (or default) changed too; the prompt sha in its `AI-runs table` rows tells which videos
+  `AI_PROMPT` (or default) changed too; the prompt sha in its AI-runs table tells which videos
   ran under which.
 - Keep the five packages free of `store`, `netguard` and anything outside stdlib, each other and the
   Anthropic SDK (`TestProductPackagesImportOnlyEachOther`). A changed SDK version in `go.mod` is
@@ -72,7 +74,9 @@ this repo's commit in `ai/SOURCE`. It refuses a checkout with uncommitted change
 
 - **No video ids, labels, transcripts or per-video predictions in the repo, ever**: they identify
   videos and contributors of the private product. Not even in examples or tests: use placeholder
-  ids with a short owner part (`c1_1001`), which the policy test deliberately does not match.
+  ids with short letter-prefixed parts (`c1_1001`), which the policy test deliberately does not match.
+- **No platform name, domain or product path in the repo either** (`TestNoPlatformURLsInTrackedFiles`):
+  the platform is a config entry; examples use `example.invalid` and the provider name `main`.
 - Private data root: `-data DIR` / `ADSKIP_DATA`, default `~/Web/data`. Layout:
   `evalsets/<name>.txt`, `transcripts/<provider>/<id>.{info.json,<lang>.vtt,jsonl}`,
   `adskip.db` (SQLite: gold labels now; runs, predictions, metrics later), `gold-v1.jsonl` (the export). Files for blobs, SQLite for what gets joined.
@@ -94,7 +98,7 @@ this repo's commit in `ai/SOURCE`. It refuses a checkout with uncommitted change
   (one table with a `provider` column, not prefixed tables as in the product backend).
 - Provider-specific knowledge stays inside `internal/provider`. The prompt is not provider-aware;
   language is a transcript property (`lang`).
-- Do not add `youtube`/`rutube` implementations before there are human labels for them.
+- Do not configure a second platform before there are human labels for it.
 
 ## Conventions
 

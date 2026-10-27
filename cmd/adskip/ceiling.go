@@ -29,13 +29,16 @@ import (
 func runCeiling(args []string) error {
 	fs := flag.NewFlagSet("ceiling", flag.ContinueOnError)
 	data := fs.String("data", defaultDataDir(), "private data root")
-	provider := fs.String("provider", "main", "video platform")
+	providerName := providerFlag(fs)
 	minContrib := fs.Int("min-contributors", 2, "videos with at least this many contributors (with sponsor/self_promotion labels)")
 	setName := fs.String("set", "", "restrict to the videos of this eval set (default: every video in the store)")
 	iou := fs.Float64("iou", 0.3, "unused by the seconds view; kept equal to the score command")
 	minSeconds := fs.Float64("min-seconds", 5, "drop labels shorter than this on the predictor side")
 	lambda := fs.Float64("lambda", 10, "a wrongly cut second counts this many times worse than a missed ad second")
 	if err := fs.Parse(args); err != nil {
+		return err
+	}
+	if _, err := resolveProvider(providerName); err != nil {
 		return err
 	}
 	ctx := context.Background()
@@ -51,7 +54,7 @@ func runCeiling(args []string) error {
 			return err
 		}
 	} else {
-		all, err := st.VideoStatsAll(ctx, *provider)
+		all, err := st.VideoStatsAll(ctx, *providerName)
 		if err != nil {
 			return err
 		}
@@ -71,7 +74,7 @@ func runCeiling(args []string) error {
 	}
 	groups := map[string]*group{"all": {}, "with assessor": {}, "no assessor": {}}
 	for _, id := range ids {
-		labels, err := st.Labels(ctx, *provider, id)
+		labels, err := st.Labels(ctx, *providerName, id)
 		if err != nil {
 			return err
 		}
@@ -100,7 +103,7 @@ func runCeiling(args []string) error {
 			g := groups[name]
 			g.videos++
 			for _, a := range humans {
-				key := *provider + ":" + id + "|" + a // one pseudo-video per (video, predictor)
+				key := *providerName + ":" + id + "|" + a // one pseudo-video per (video, predictor)
 				g.humans++
 				for _, l := range byHuman[a] {
 					g.preds = append(g.preds, score.Pred{Video: key, Category: l.Category, Start: l.Start, End: l.End, Confidence: "high"})

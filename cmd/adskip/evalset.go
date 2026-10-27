@@ -32,7 +32,7 @@ func runEvalset(args []string) error {
 		return runEvalsetClean(kind, args[1:])
 	}
 	fs := flag.NewFlagSet("evalset "+kind, flag.ContinueOnError)
-	providerName := fs.String("provider", "main", "video platform")
+	providerName := providerFlag(fs)
 	data := fs.String("data", defaultDataDir(), "private data root")
 	n := fs.Int("n", 10, "v0: videos per stratum")
 	minContrib := fs.Int("min-contributors", 3, "v0: multi-contributor stratum threshold")
@@ -42,6 +42,9 @@ func runEvalset(args []string) error {
 	minMin := fs.Float64("min-minutes", 10, "dev: skip videos with a known duration below this")
 	maxMin := fs.Float64("max-minutes", 60, "dev: skip videos with a known duration above this (unknown durations pass and are checked after the fetch)")
 	if err := fs.Parse(args[1:]); err != nil {
+		return err
+	}
+	if _, err := resolveProvider(providerName); err != nil {
 		return err
 	}
 	st, err := store.Open(store.Path(*data))

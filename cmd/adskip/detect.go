@@ -66,7 +66,7 @@ type runMetrics struct {
 // so an interrupted run never repeats a paid call. -force starts over.
 func runDetect(args []string) error {
 	fs := flag.NewFlagSet("detect", flag.ContinueOnError)
-	providerName := fs.String("provider", "main", "video platform")
+	providerName := providerFlag(fs)
 	data := fs.String("data", defaultDataDir(), "private data root")
 	set := fs.String("set", "", "eval set name under <data>/evalsets (required)")
 	model := fs.String("model", "claude-opus-5-5", "model id")
@@ -83,6 +83,9 @@ func runDetect(args []string) error {
 	dryRun := fs.Bool("dry-run", false, "render requests and estimate size, no model calls, nothing written")
 	force := fs.Bool("force", false, "replace an existing run with the same id")
 	if err := fs.Parse(args); err != nil {
+		return err
+	}
+	if _, err := resolveProvider(providerName); err != nil {
 		return err
 	}
 	if *set == "" {

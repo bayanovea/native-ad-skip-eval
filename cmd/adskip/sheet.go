@@ -11,7 +11,6 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/bayanovea/native-ad-skip-eval/internal/provider"
 	"github.com/bayanovea/native-ad-skip-eval/internal/score"
 	"github.com/bayanovea/native-ad-skip-eval/internal/store"
 )
@@ -41,7 +40,7 @@ type sheetItem struct {
 func runSheet(args []string) error {
 	fs := flag.NewFlagSet("sheet", flag.ContinueOnError)
 	data := fs.String("data", defaultDataDir(), "private data root")
-	providerName := fs.String("provider", "main", "video platform")
+	providerName := providerFlag(fs)
 	runsFlag := fs.String("runs", "", "comma-separated run ids (required)")
 	out := fs.String("out", "", "output .md path, outside the repo (required)")
 	minSec := fs.Float64("min-seconds", 5, "ignore predictions shorter than this")
@@ -186,7 +185,7 @@ func runSheet(args []string) error {
 		return shuffleKey(items[i].video, items[i].start) < shuffleKey(items[j].video, items[j].start)
 	})
 
-	prov, err := provider.Lookup(*providerName)
+	prov, err := resolveProvider(providerName)
 	if err != nil {
 		return err
 	}

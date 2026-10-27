@@ -9,7 +9,6 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/bayanovea/native-ad-skip-eval/internal/provider"
 	"github.com/bayanovea/native-ad-skip-eval/internal/transcript"
 	"github.com/bayanovea/native-ad-skip-eval/internal/vtt"
 )
@@ -18,7 +17,7 @@ import (
 // Duration/title come from a cached info.json when present.
 func runCollapse(args []string) error {
 	fs := flag.NewFlagSet("collapse", flag.ContinueOnError)
-	providerName := fs.String("provider", "main", "video platform")
+	providerName := providerFlag(fs)
 	id := fs.String("id", "", "native_id of a video whose VTT is already cached")
 	data := fs.String("data", defaultDataDir(), "private data root")
 	lang := fs.String("lang", "ru", "subtitle language")
@@ -28,7 +27,7 @@ func runCollapse(args []string) error {
 	if *id == "" {
 		return errors.New("-id is required")
 	}
-	if _, err := provider.Lookup(*providerName); err != nil {
+	if _, err := resolveProvider(providerName); err != nil {
 		return err
 	}
 	cache := cacheDir(*data, *providerName)

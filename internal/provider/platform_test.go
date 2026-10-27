@@ -1,11 +1,25 @@
 package provider
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/bayanovea/native-ad-skip-eval/internal/transcript"
 	"github.com/bayanovea/native-ad-skip-eval/internal/ytdlp"
 )
+
+const testConfig = `{"providers": [{
+	"name": "main",
+	"video_url": "https://example.invalid/video/{id}",
+	"link_at": "https://example.invalid/watch/{id}?t={t}",
+	"channel_url": "https://example.invalid/channel/{channel}/videos"
+}]}`
+
+func init() {
+	if err := Load(strings.NewReader(testConfig)); err != nil {
+		panic(err)
+	}
+}
 
 func TestPickTrackShapes(t *testing.T) {
 	manifest := ytdlp.Track{Ext: "vtt", URL: "u1", ManifestURL: "m1"}
@@ -39,13 +53,38 @@ func TestRegistry(t *testing.T) {
 	if p.VideoURL("c1_2") != "https://example.invalid/video/c1_2" {
 		t.Errorf("url: %s", p.VideoURL("c1_2"))
 	}
+	if p.ChannelURL("c1") != "https://example.invalid/channel/c1/videos" {
+		t.Errorf("channel url: %s", p.ChannelURL("c1"))
+	}
 	if _, err := Lookup("nope"); err == nil {
 		t.Error("unknown provider must fail")
+	}
+	if p, err := Resolve(""); err != nil || p.Name() != "main" {
+		t.Errorf("Resolve(\"\") with one provider: %v, %v", p, err)
+	}
+}
+
+func TestLoadRejectsBadConfig(t *testing.T) {
+	for name, cfg := range map[string]string{
+		"duplicate":  `{"providers":[{"name":"main","video_url":"x","link_at":"y"}]}`,
+		"no name":    `{"providers":[{"video_url":"x","link_at":"y"}]}`,
+		"no link_at": `{"providers":[{"name":"other","video_url":"x"}]}`,
+		"not json":   `providers:`,
+	} {
+		if err := Load(strings.NewReader(cfg)); err == nil {
+			t.Errorf("%s: expected error", name)
+		}
+	}
+	if _, err := Lookup("other"); err == nil {
+		t.Error("a rejected config must register nothing")
+	}
+	if got := (platform{Def{Name: "x", VideoURL: "v", LinkAt: "l"}}).ChannelURL("c"); got != "" {
+		t.Errorf("ChannelURL without template = %q, want empty", got)
 	}
 }
 
 func TestLinkAt(t *testing.T) {
-	v := platform{}
+	v, _ := Lookup("main")
 	for _, c := range []struct {
 		sec  int
 		want string

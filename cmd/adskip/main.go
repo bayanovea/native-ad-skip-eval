@@ -14,15 +14,22 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"os"
 	"path/filepath"
+
+	"github.com/bayanovea/native-ad-skip-eval/internal/provider"
 )
 
 func main() {
 	if len(os.Args) < 2 {
 		usage()
 		os.Exit(2)
+	}
+	if err := provider.LoadFile(envOr("ADSKIP_PROVIDERS", home(".config/native-ad-skip-eval/providers.json"))); err != nil {
+		fmt.Fprintln(os.Stderr, "error:", err)
+		os.Exit(1)
 	}
 	var err error
 	switch os.Args[1] {
@@ -67,8 +74,8 @@ func main() {
 
 func usage() {
 	fmt.Fprintln(os.Stderr, `usage:
-  adskip fetch    [-provider main] [-set NAME] [-ids FILE] [-data DIR] [-lang ru] [-force] [-retries N] [-yt-dlp PATH] [-proxy URL] [id ...]
-  adskip collapse [-provider main] [-data DIR] [-lang ru] -id NATIVE_ID
+  adskip fetch    [-provider NAME] [-set NAME] [-ids FILE] [-data DIR] [-lang ru] [-force] [-retries N] [-yt-dlp PATH] [-proxy URL] [id ...]
+  adskip collapse [-provider NAME] [-data DIR] [-lang ru] -id NATIVE_ID
   adskip import   [-data DIR] -file GOLD_JSONL
   adskip evalset  heldout | v0 [-data DIR] [-n 10] [-min-contributors 3] [-exclude c2-spike]
   adskip detect   -set NAME [-model claude-opus-5-5] [-effort medium] [-transport api|cli] [-tag NAME] [-prompt prompts/v2.2.md] [-limit N] [-dry-run] [-force] [-data DIR]
@@ -80,6 +87,22 @@ func usage() {
   adskip sheet    -runs RUN1,RUN2,... -out PATH.md [-min-seconds 5] [-data DIR]
   adskip compare  -a RUN -b RUN [-iou 0.5] [-min-seconds 5] [-data DIR]
   adskip review   -file VERDICTS_TSV -run RUN_ID -date YYYY-MM-DD [-reviewer NAME] [-data DIR]`)
+}
+
+// providerFlag registers -provider; "" resolves to the only configured platform.
+func providerFlag(fs *flag.FlagSet) *string {
+	return fs.String("provider", "", "video platform (default: the only configured one)")
+}
+
+// resolveProvider replaces the flag value with the resolved name, so "" becomes
+// the real name everywhere the command keys data by it.
+func resolveProvider(name *string) (provider.Provider, error) {
+	p, err := provider.Resolve(*name)
+	if err != nil {
+		return nil, err
+	}
+	*name = p.Name()
+	return p, nil
 }
 
 // defaultDataDir is the private data root: $ADSKIP_DATA or ~/Web/data.

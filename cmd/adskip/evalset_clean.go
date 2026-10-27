@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/bayanovea/native-ad-skip-eval/internal/netguard"
+	"github.com/bayanovea/native-ad-skip-eval/internal/provider"
 	"github.com/bayanovea/native-ad-skip-eval/internal/store"
 	"github.com/bayanovea/native-ad-skip-eval/internal/transcript"
 )
@@ -30,7 +31,7 @@ import (
 // cuts, not against gold.
 func runEvalsetClean(kind string, args []string) error {
 	fs := flag.NewFlagSet("evalset "+kind, flag.ContinueOnError)
-	providerName := fs.String("provider", "main", "video platform")
+	providerName := providerFlag(fs)
 	data := fs.String("data", defaultDataDir(), "private data root")
 	from := fs.String("from", "dev", "eval set whose channels are sampled")
 	perChannel := fs.Int("per-channel", 2, "clean-cand: candidates kept per channel")
@@ -42,6 +43,13 @@ func runEvalsetClean(kind string, args []string) error {
 	homeIPs := fs.String("home-ips", home(".config/native-ad-skip-eval/home_ips"), "file listing IPs the listing must never run from")
 	if err := fs.Parse(args); err != nil {
 		return err
+	}
+	prov, err := resolveProvider(providerName)
+	if err != nil {
+		return err
+	}
+	if kind == "clean-cand" && prov.ChannelURL("") == "" {
+		return fmt.Errorf("provider %s has no channel_url (providers.json)", prov.Name())
 	}
 	src, err := readIDs(evalsetPath(*data, *from))
 	if err != nil {
@@ -59,14 +67,15 @@ func runEvalsetClean(kind string, args []string) error {
 
 	switch kind {
 	case "clean-cand":
-		return cleanCandidates(*data, *providerName, *bin, *homeIPs, channels, *perChannel, *listEnd, *from)
+		return cleanCandidates(*data, prov, *bin, *homeIPs, channels, *perChannel, *listEnd, *from)
 	case "clean":
 		return cleanPick(*data, *providerName, *n, *minMin, *maxMin, *from)
 	}
 	return fmt.Errorf("unknown evalset kind %q", kind)
 }
 
-func cleanCandidates(data, providerName, bin, homeIPs string, channels []string, perChannel, listEnd int, from string) error {
+func cleanCandidates(data string, prov provider.Provider, bin, homeIPs string, channels []string, perChannel, listEnd int, from string) error {
+	providerName := prov.Name()
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer stop()
 	ip, err := netguard.Verify(ctx, homeIPs, netguard.DefaultLookupURL)
@@ -91,8 +100,7 @@ func cleanCandidates(data, providerName, bin, homeIPs string, channels []string,
 
 	var ids []string
 	for _, ch := range channels {
-		// The playlist URL is the owner's list of all uploads.
-		url := fmt.Sprintf("https://example.invalid/playlist/%s_-2", ch)
+		url := prov.ChannelURL(ch)
 		lctx, cancel := context.WithTimeout(ctx, 3*time.Minute)
 		out, err := exec.CommandContext(lctx, bin, "--flat-playlist", "--playlist-end", fmt.Sprint(listEnd),
 			"--no-warnings", "--print", "%(id)s", url).Output()

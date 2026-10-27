@@ -152,7 +152,9 @@ packages so the same code can run inside the product against its own database; t
 store is for offline scoring only. The product runs a copy of these packages and the prompt
 (synced from a committed checkout of this repo), so detector and prompt changes are made and
 scored here first. The provider layer (`internal/provider`) is the only
-platform-specific code; everything is keyed by `(provider, native_id)`.
+platform-specific code; everything is keyed by `(provider, native_id)`. The platform itself is
+not named anywhere in the repository: it is a config entry outside the tree (name and URL
+templates), and a test fails the build on any other host in a tracked file.
 
 **Privacy is a test, not a convention.** Nothing that identifies a video or a contributor enters
 the repository: a test scans every tracked file and file name for video and channel ids and fails
@@ -200,8 +202,8 @@ on videos nobody has marked, at `high` confidence only) is taken from these numb
 What is rough: recall. The detector leaves about half of the ad time in, and the review sheets
 only cover stretches it flagged, so the misses are the least examined error class. `intro` and
 `credits` are not detected (no transcript signal). About 25% of videos have no subtitle track at
-all, which caps coverage before any model runs. One provider (`main`); `youtube` and `rutube` wait
-for human labels. No regression test in `go test` yet; a run is compared by hand with `rank`.
+all, which caps coverage before any model runs. One platform so far; another is a config entry
+away but waits for human labels. No regression test in `go test` yet; a run is compared by hand with `rank`.
 
 What I would do differently: define the seconds metric and SCORE before the first run instead of
 after a table of twelve numbers; review a random control sample from day one, not only
@@ -215,8 +217,8 @@ quality problem from the first fetch rather than discovering it on the third set
 # Subtitles → transcripts for every id in an eval set. Cached videos are skipped; a rerun after
 # a partial failure retries only what is missing. Refuses to run from a home IP.
 ./adskip fetch -set heldout
-./adskip fetch -provider main -ids /path/ids.txt
-./adskip collapse -id c1_1001           # rebuild one transcript from the cached VTT, no network
+./adskip fetch -ids /path/ids.txt             # -provider NAME only when more than one is configured
+./adskip collapse -id c1_1001                 # rebuild one transcript from the cached VTT, no network
 
 # Human labels (anonymised JSONL export) into the eval store. Idempotent.
 ./adskip import -file $ADSKIP_DATA/gold-v1.jsonl
@@ -287,6 +289,17 @@ All private data lives under the data root (`-data DIR`, `ADSKIP_DATA`), never i
 | `transcripts/<provider>/<id>.<lang>.vtt` | raw subtitle track |
 | `transcripts/<provider>/<id>.jsonl` | collapsed transcript |
 | `adskip.db` | SQLite eval store: videos, contributors, labels, runs, calls, predictions, reviews, offsets, flags (`internal/store/schema.sql`) |
+
+Platforms are configured, not coded: `~/.config/native-ad-skip-eval/providers.json` (or
+`ADSKIP_PROVIDERS`) lists each one with its name and URL templates (`{id}`, `{t}` as `1h2m3s`,
+`{channel}`); with one entry `-provider` can be left out everywhere.
+
+```json
+{"providers": [{"name": "main",
+  "video_url": "https://example.invalid/video/{id}",
+  "link_at": "https://example.invalid/watch/{id}?t={t}",
+  "channel_url": "https://example.invalid/channel/{channel}/videos"}]}
+```
 
 The gold export is one JSONL object per human interval, exactly as made (no merging):
 `provider, native_id, duration, category, start, end, contributor (salted hash), is_assessor,
