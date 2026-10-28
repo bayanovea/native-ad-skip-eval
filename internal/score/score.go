@@ -121,6 +121,7 @@ type Result struct {
 	GoldMerged   map[string]int // category -> merged gold segments
 	ByCategory   map[string]Counts
 	BySeconds    map[string]Seconds
+	VideoSeconds map[string]Seconds           // any_ad seconds per video, for paired comparisons
 	ByConfidence map[string]map[string]Counts // category -> confidence -> counts (TP/FP only)
 	Start, End   map[string]Quantiles         // category -> boundary error distribution
 	Pairs        []Pair
@@ -198,7 +199,11 @@ func Score(golds []Gold, preds []Pred, opt Options) Result {
 		pairs, fp, fn := match(g, p, opt.IoU)
 		c := Counts{TP: len(pairs), FP: len(fp), FN: len(fn)}
 		res.ByCategory[cat] = c
-		res.BySeconds[cat] = secondsOverlap(g, p)
+		perVideo := secondsByVideo(g, p)
+		res.BySeconds[cat] = sumSeconds(perVideo)
+		if cat == AnyAd {
+			res.VideoSeconds = perVideo
+		}
 		res.ByConfidence[cat] = byConfidence(pairs, fp)
 		res.Start[cat] = quantiles(pairs, func(x Pair) float64 { return x.StartDelta })
 		res.End[cat] = quantiles(pairs, func(x Pair) float64 { return x.EndDelta })
@@ -442,10 +447,20 @@ func filterPreds(ps []Pred, cat string) []Pred {
 	return out
 }
 
-// secondsOverlap sums, per video, the union length of predictions, of gold and
+func sumSeconds(perVideo map[string]Seconds) Seconds {
+	var r Seconds
+	for _, x := range perVideo {
+		r.Pred += x.Pred
+		r.Gold += x.Gold
+		r.Both += x.Both
+	}
+	return r
+}
+
+// secondsByVideo gives, per video, the union length of predictions, of gold and
 // of their intersection. Both inputs are unioned first, so overlapping
 // intervals are never counted twice.
-func secondsOverlap(golds []Gold, preds []Pred) Seconds {
+func secondsByVideo(golds []Gold, preds []Pred) map[string]Seconds {
 	type iv struct{ s, e float64 }
 	gv, pv := map[string][]iv{}, map[string][]iv{}
 	for _, g := range golds {
@@ -466,7 +481,7 @@ func secondsOverlap(golds []Gold, preds []Pred) Seconds {
 		}
 		return out
 	}
-	var r Seconds
+	out := map[string]Seconds{}
 	videos := map[string]bool{}
 	for v := range gv {
 		videos[v] = true
@@ -475,6 +490,7 @@ func secondsOverlap(golds []Gold, preds []Pred) Seconds {
 		videos[v] = true
 	}
 	for v := range videos {
+		var r Seconds
 		g, p := union(gv[v]), union(pv[v])
 		for _, x := range g {
 			r.Gold += x.e - x.s
@@ -489,8 +505,9 @@ func secondsOverlap(golds []Gold, preds []Pred) Seconds {
 				}
 			}
 		}
+		out[v] = r
 	}
-	return r
+	return out
 }
 
 func fratio(a, b float64) float64 {

@@ -9,7 +9,7 @@ write-up, not a tutorial.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/results-dark.svg">
-  <img alt="Results: 44% of ad time removed, 1.3 s/h of content wrongly cut, $0.025 per video on 217 unseen videos; prompt iterations; raw vs reviewed gold" src="docs/results-light.svg">
+  <img alt="Results: 52% of ad time removed, 2.1 s/h of content wrongly cut, $0.025 per video on 217 unseen videos; prompt iterations; raw vs reviewed gold" src="docs/results-light.svg">
 </picture>
 
 **→ [How the detector got here](docs/iterations.md):** fifteen measured steps, what each changed,
@@ -17,7 +17,7 @@ what was kept and what was rejected.
 
 The headline is one run on videos the detector was never tuned on, and it passes the release gate
 fixed before that set was opened (SCORE ≥ 0.15, wrongly cut ≤ 6 s/h). The same run scored against
-the raw human labels looks like a failure (−0.89): most of the gap was ads the humans had not
+the raw human labels looks like a failure (−0.98): most of the gap was ads the humans had not
 marked, which is the main finding of the project.
 
 ## What the project answers
@@ -55,7 +55,8 @@ run produced it. Raw labels are never edited; verdicts (`gold_missing`, `gold_wr
 
 | Set | Videos | Model, prompt | SCORE | ad time removed | content wrongly cut | $ / video |
 |---|---|---|---|---|---|---|
-| **held-out** (frozen before any prompt work, scored once) | 217 | Sonnet 5.5, v2.1, batch | **0.34** | 44% | 1.3 s/h | 0.025 |
+| **held-out** (frozen before any prompt work) | 217 | Sonnet 5.5, **v2.2**, batch | **0.40** | 52% | 2.1 s/h | 0.025 |
+| held-out, same gold | 217 | Sonnet 5.5, v2.1, batch | 0.32 | 41% | 1.5 s/h | 0.025 |
 | dev-v1 | 69 | Sonnet 5.5, **v2.2** (skit lead-in belongs to the ad), batch | 0.33 (0.27–0.39, n=2) | 65% | 3.8 s/h | 0.022 |
 | dev-v1 (69 videos, 40 channels) | 69 | Sonnet 5.5, v2.1, batch | 0.20 (0.17–0.23, n=2) | 56% | 5.0 s/h | 0.022 |
 | dev-v1, thinking + high effort | 69 | Sonnet 5.5, v2.1, batch | 0.24 (0.21–0.27, n=2) | 55% | 5.2 s/h | 0.022 |
@@ -63,17 +64,24 @@ run produced it. Raw labels are never edited; verdicts (`gold_missing`, `gold_wr
 | v0 | 18 | Sonnet 5.5, v1.1 | 0.30 (0.22–0.36, n=5) | — | — | 0.054 |
 | v0 | 18 | Haiku 4.5, v1.1 | 0.37 | — | — | 0.028 |
 
-Held-out, segment level, reviewed gold, IoU ≥ 0.3: any-ad precision 0.77 / recall 0.78;
-sponsor 0.70 / 0.64; self-promotion 0.76 / 0.86. In seconds, any-ad precision is 0.95 and
-recall 0.49: what the detector cuts is almost always an ad, and it leaves about half of the ad
-time in. Haiku's v0 row covers the 12 of 18 videos where its output passed validation.
+**v2.2 against v2.1 on the held-out set: +0.08, 95% CI [0.00, +0.18]** resampling videos, [−0.02, +0.16]
+resampling channels (20 of them; `adskip paired`, same videos, same reviewed gold). Read as: v2.2 is
+not worse, and probably better, but the size of the gain is not pinned down. One video carries 38%
+of the difference. It was shipped as the release on that reading, not on "+0.08".
+
+Held-out v2.2, segment level, reviewed gold, IoU ≥ 0.3, all confidence levels: any-ad precision
+0.84 / recall 0.80; sponsor 0.80 / 0.70; self-promotion 0.78 / 0.80. In seconds, any-ad precision
+is 0.96 and recall 0.58: what the detector cuts is almost always an ad, and it leaves about half
+of the ad time in. The v2.1 row is re-scored on the gold of the v2.2 review, so both rows read the
+same labels (v2.1 was 0.34 on the gold of its own day). Haiku's v0 row covers the 12 of 18 videos
+where its output passed validation.
 
 **What the numbers taught me**
 
 - **Raw crowd labels are a floor, not a measurement.** On dev-v1 the headline went from −0.48 to
   0.20 after the eye check: about 70% of the "wrongly cut" seconds were real ads nobody had
   marked, ~20% were videos whose subtitle track did not match the video, under 10% were model
-  errors. The held-out set repeated the pattern (−0.89 → 0.34).
+  errors. The held-out set repeated the pattern (−0.98 → 0.40 for v2.2).
 - **The human–human ceiling is unusable as a bar.** Scoring each contributor against the union of
   the others gives SCORE −5.96: a person's seconds are confirmed by someone else 22% of the time
   and cover 17% of what the others marked. "AI at human level" would be passed by anything, so the
@@ -81,6 +89,10 @@ time in. Haiku's v0 row covers the 12 of 18 videos where its output passed valid
 - **Opus is about twice Sonnet on this task; Sonnet variants overlap within their own noise.**
   Running the same configuration twice before comparing two configurations is the rule here: the
   repeat spread is ±0.03 on dev-v1 and ±0.1 on 18 videos, where one 300 s block decides the score.
+- **A difference needs an interval, and the unit is the video.** SCORE is a ratio of sums, so the
+  paired comparison resamples whole videos (and whole channels) and recomputes the ratio; averaging
+  per-video scores would let a video with 20 s of ad weigh as much as one with 20 minutes. On 20
+  channels the channel interval is wider than the video one, and that is the honest one to quote.
 - **Thinking is not worth paying for.** A gain seen through `claude -p` did not reproduce on the
   API; on dev-v1 the gap (0.04) sits inside the repeat range.
 - **Cost went from $0.085 to $0.026 per video with no quality change.** Spend is 99% input tokens.
@@ -129,7 +141,9 @@ are stored raw.
 prompt work. A hash bucket instead of a random seed: the list is reproducible from the data and a
 video never changes side when labels arrive. The gate values (SCORE ≥ 0.15, ≤ 6 s/h) were
 fixed from dev-v1 and written down before the held-out run was scored. Cost: one honest number
-per milestone instead of a number per iteration, and the held-out could have failed.
+per milestone instead of a number per iteration, and the held-out could have failed. The set has
+now been used twice: once as the gate (v2.1), once to choose the release (v2.2 against v2.1, paired,
+on the same gold). That second use spends it: the next prompt is gated on a set it has not seen.
 
 **Indices, not timestamps.** A segment can only start and end where the transcript has text, and
 the model cannot invent a number. Consequence, measured and reported separately: text-based
@@ -196,14 +210,15 @@ formats and the data-root layout are under the fold below. Requirements: Go 1.27
 
 Done: fetch and transcript cache, anonymised gold import, held-out and dev sets, detector with
 three transports, scorer with seconds metrics and review layer, blind review sheets, per-video
-subtitle offsets, timing gate, held-out measured once. The product decision this feeds (auto-skip
+subtitle offsets, timing gate, held-out scored twice (the gate, then the release choice on the same
+gold), paired bootstrap interval for comparing two runs. The product decision this feeds (auto-skip
 on videos nobody has marked, at `high` confidence only) is taken from these numbers.
 
 What is rough: recall. The detector leaves about half of the ad time in, and the review sheets
 only cover stretches it flagged, so the misses are the least examined error class. `intro` and
 `credits` are not detected (no transcript signal). About 25% of videos have no subtitle track at
 all, which caps coverage before any model runs. One platform so far; another is a config entry
-away but waits for human labels. No regression test in `go test` yet; a run is compared by hand with `rank`.
+away but waits for human labels. No regression test in `go test` yet; a run is compared by hand with `rank` and `paired`.
 
 What I would do differently: define the seconds metric and SCORE before the first run instead of
 after a table of twelve numbers; review a random control sample from day one, not only
@@ -233,6 +248,7 @@ quality problem from the first fetch rather than discovering it on the third set
 # Scoring. Thresholds are flags; predictions are stored raw.
 ./adskip score -run RUN -iou 0.3 -gold reviewed            # headline; -detail for the full table; -list for misses
 ./adskip rank -timing-clean "v2.1=RUN1,RUN2" "think=RUN3"  # variants side by side, spread over repeats
+./adskip paired BASE_RUN CANDIDATE_RUN                     # SCORE difference + 95% CI, resampling videos and channels
 ./adskip compare -a RUN1 -b RUN2                           # agreement between two runs, no gold needed
 ./adskip ceiling                                           # each human vs the union of the others
 

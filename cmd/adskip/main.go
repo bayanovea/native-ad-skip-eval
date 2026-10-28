@@ -49,6 +49,8 @@ func main() {
 		err = runReview(os.Args[2:])
 	case "rank":
 		err = runRank(os.Args[2:])
+	case "paired":
+		err = runPaired(os.Args[2:])
 	case "ceiling":
 		err = runCeiling(os.Args[2:])
 	case "offset":
@@ -81,6 +83,7 @@ func usage() {
   adskip detect   -set NAME [-model claude-opus-5-5] [-effort medium] [-transport api|cli] [-tag NAME] [-prompt prompts/v2.2.md] [-limit N] [-dry-run] [-force] [-data DIR]
   adskip score    -run RUN_ID [-min-seconds 5] [-min-confidence low|medium|high] [-iou 0.5] [-gold all|assessor|reviewed] [-videos FILE] [-list] [-data DIR]
   adskip rank     [-exclude-owner OWNER] [-videos FILE] [-timing-clean] [-lambda 10] label=run[,run...] ...
+  adskip paired   [-gold reviewed] [-videos FILE] [-timing-clean] [-lambda 10] [-boot 10000] BASE_RUN CANDIDATE_RUN
   adskip ceiling  [-min-contributors 2] [-set NAME]   # human-human ceiling in SCORE
   adskip offset   -id NATIVE_ID -seconds N -date YYYY-MM-DD [-note TEXT] [-data DIR]
   adskip flags    -file VIDEO_FLAGS_TSV [-data DIR]

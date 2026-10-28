@@ -10,9 +10,9 @@ from pathlib import Path
 
 # --- data -------------------------------------------------------------------
 
-HEADLINE = [  # held-out set, 217 videos, Sonnet 5.5, prompt v2.1
-    ("44%", "of ad time removed"),
-    ("1.3 s/h", "content wrongly cut"),
+HEADLINE = [  # held-out set, 217 videos, Sonnet 5.5, prompt v2.2
+    ("52%", "of ad time removed"),
+    ("2.1 s/h", "content wrongly cut"),
     ("$0.025", "per video"),
     ("217", "videos never tuned on"),
 ]
@@ -34,7 +34,8 @@ SCALING = [
     ("18 videos · v2.1", -0.41, 0.43),
     ("dev-v1 · 69 videos, 40 channels · v2.1", -0.63, 0.20),
     ("dev-v1 · v2.2 (one rule added)", None, 0.31),
-    ("held-out · 217 videos · v2.1", -0.89, 0.34),
+    ("held-out · 217 videos · v2.1", -0.61, 0.32),
+    ("held-out · v2.2 (release)", -0.98, 0.40),
 ]
 
 THEMES = {
@@ -70,8 +71,8 @@ def render(c):
         out.append(f'<rect x="{x}" y="{y0}" width="{tw}" height="66" rx="6" fill="{c["tile"]}"/>')
         out.append(text(x + 14, y0 + 36, big, 24, c["text"], weight="600", c=c))
         out.append(text(x + 14, y0 + 55, small, 12, c=c))
-    out.append(text(x0, 108, "Held-out set (frozen before the first prompt, scored once) · Claude Sonnet 5.5 · "
-                    "prompt v2.1 · reviewed gold", 11, c["muted"], c=c))
+    out.append(text(x0, 108, "Held-out set (frozen before the first prompt) · Claude Sonnet 5.5 · "
+                    "prompt v2.2 · reviewed gold", 11, c["muted"], c=c))
 
     # panel A: iterations
     ax, ay, aw = 16, 140, 560
@@ -115,7 +116,7 @@ def render(c):
     out.append(text(bx, by, "Same detector, bigger sets: raw labels vs reviewed", 13, c["text"], weight="600", c=c))
     out.append(text(bx, by + 16, "SCORE against raw crowd labels and after an eye check", 11, c["muted"], c=c))
     qx0, qx1 = bx + 10, bx + bw - 10
-    rowb0, pitchb = by + 62, 52
+    rowb0, pitchb = by + 62, 44
 
     def bxs(v):
         return qx0 + (v + 1.0) / 1.6 * (qx1 - qx0)
