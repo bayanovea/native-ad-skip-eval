@@ -16,7 +16,7 @@ var productPackages = []string{"detector", "transcript", "vtt", "provider", "ytd
 
 // TestProductPackagesImportOnlyEachOther keeps the copied packages free of the
 // eval-only code (store, netguard, gold, ...): they may import the standard
-// library, each other and the Anthropic SDK, nothing else.
+// library, each other and the Anthropic and OpenAI SDKs, nothing else.
 func TestProductPackagesImportOnlyEachOther(t *testing.T) {
 	root := repoRoot(t)
 	allowed := map[string]bool{}
@@ -41,7 +41,8 @@ func TestProductPackagesImportOnlyEachOther(t *testing.T) {
 			for _, imp := range f.Imports {
 				path, _ := strconv.Unquote(imp.Path.Value)
 				stdlib := !strings.Contains(strings.SplitN(path, "/", 2)[0], ".")
-				if !stdlib && !allowed[path] && !strings.HasPrefix(path, "github.com/anthropics/anthropic-sdk-go") {
+				if !stdlib && !allowed[path] && !strings.HasPrefix(path, "github.com/anthropics/anthropic-sdk-go") &&
+					!strings.HasPrefix(path, "github.com/openai/openai-go/") {
 					hits = append(hits, "internal/"+p+"/"+e.Name()+": "+path)
 				}
 			}

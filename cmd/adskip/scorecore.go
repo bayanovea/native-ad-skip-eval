@@ -32,10 +32,19 @@ type scoreParams struct {
 // (status ok). It returns the result, the number of scored videos and the
 // number of review verdicts applied.
 func computeScore(ctx context.Context, st *store.Store, runID string, p scoreParams) (score.Result, int, int, error) {
-	var zero score.Result
+	golds, preds, scored, reviewsApplied, err := scoredInputs(ctx, st, runID, p)
+	if err != nil {
+		return score.Result{}, 0, 0, err
+	}
+	return score.Score(golds, preds, p.Opt), scored, reviewsApplied, nil
+}
+
+// scoredInputs is what computeScore scores: the gold and the predictions of the
+// run's selected videos, offsets and (gold reviewed) review verdicts applied.
+func scoredInputs(ctx context.Context, st *store.Store, runID string, p scoreParams) ([]score.Gold, []score.Pred, int, int, error) {
 	videos, err := selectVideos(ctx, st, runID, p)
 	if err != nil {
-		return zero, 0, 0, err
+		return nil, nil, 0, 0, err
 	}
 	// In assessor mode a video without any assessor label has no gold at all,
 	// so it is left out entirely rather than scored as "no ads here".
@@ -46,7 +55,7 @@ func computeScore(ctx context.Context, st *store.Store, runID string, p scorePar
 		key := v[0] + ":" + v[1]
 		labels, err := st.Labels(ctx, v[0], v[1])
 		if err != nil {
-			return zero, 0, 0, err
+			return nil, nil, 0, 0, err
 		}
 		var vg []score.Gold
 		hasAssessor := false
@@ -66,11 +75,11 @@ func computeScore(ctx context.Context, st *store.Store, runID string, p scorePar
 	}
 	rawPreds, err := st.Predictions(ctx, runID)
 	if err != nil {
-		return zero, 0, 0, err
+		return nil, nil, 0, 0, err
 	}
 	offsets, err := st.Offsets(ctx)
 	if err != nil {
-		return zero, 0, 0, err
+		return nil, nil, 0, 0, err
 	}
 	if p.NoOffsets {
 		offsets = nil
@@ -92,7 +101,7 @@ func computeScore(ctx context.Context, st *store.Store, runID string, p scorePar
 	if p.Gold == "reviewed" {
 		stored, err := st.Reviews(ctx)
 		if err != nil {
-			return zero, 0, 0, err
+			return nil, nil, 0, 0, err
 		}
 		var reviews []score.Review
 		for _, r := range stored {
@@ -101,12 +110,12 @@ func computeScore(ctx context.Context, st *store.Store, runID string, p scorePar
 			}
 		}
 		if len(reviews) == 0 {
-			return zero, 0, 0, fmt.Errorf("-gold reviewed: no stored verdicts for this run's videos (adskip review)")
+			return nil, nil, 0, 0, fmt.Errorf("-gold reviewed: no stored verdicts for this run's videos (adskip review)")
 		}
 		golds, preds = score.ApplyReviews(golds, preds, reviews)
 		reviewsApplied = len(reviews)
 	}
-	return score.Score(golds, preds, p.Opt), scored, reviewsApplied, nil
+	return golds, preds, scored, reviewsApplied, nil
 }
 
 // selectVideos returns the run's ok videos that pass the -exclude-owner,

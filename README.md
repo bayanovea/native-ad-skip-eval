@@ -244,12 +244,14 @@ quality problem from the first fetch rather than discovering it on the third set
 ./adskip detect -set dev -dry-run
 ./adskip detect -set dev -model claude-sonnet-5-5 -transport batch -prompt prompts/v2.2.md -no-times
 ./adskip detect -set dev -model claude-sonnet-5-5 -transport cli -prompt prompts/v2.2.md -no-times [-thinking -effort high]
+./adskip detect -set dev -model gpt-5-mini -transport openai -effort low -prompt prompts/v2.2.md -no-times  # OPENAI_API_KEY
 
 # Scoring. Thresholds are flags; predictions are stored raw.
 ./adskip score -run RUN -iou 0.3 -gold reviewed            # headline; -detail for the full table; -list for misses
 ./adskip rank -timing-clean "v2.1=RUN1,RUN2" "think=RUN3"  # variants side by side, spread over repeats
 ./adskip paired BASE_RUN CANDIDATE_RUN                     # SCORE difference + 95% CI, resampling videos and channels
 ./adskip compare -a RUN1 -b RUN2                           # agreement between two runs, no gold needed
+./adskip agree FIRST_RUN SECOND_RUN                        # the product's two-model veto: confirmed / vetoed, TP and FP vetoed
 ./adskip ceiling                                           # each human vs the union of the others
 
 # Review loop: blind sheet over several runs → verdicts (TSV) → applied by -gold reviewed.

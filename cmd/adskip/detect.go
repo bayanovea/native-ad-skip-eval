@@ -26,7 +26,7 @@ type runConfig struct {
 	Thinking      bool           `json:"thinking,omitempty"`
 	NoTimes       bool           `json:"no_times,omitempty"`
 	WindowSeconds float64        `json:"window_seconds,omitempty"`
-	Transport     string         `json:"transport"`              // api | cli | batch
+	Transport     string         `json:"transport"`              // api | cli | batch | openai
 	PriceFactor   float64        `json:"price_factor,omitempty"` // 0.5 for batch: the Batches API bills half
 	BatchID       string         `json:"batch_id,omitempty"`
 	CLIVersion    string         `json:"cli_version,omitempty"` // transport=cli only: the instrument changes with releases
@@ -71,7 +71,7 @@ func runDetect(args []string) error {
 	set := fs.String("set", "", "eval set name under <data>/evalsets (required)")
 	model := fs.String("model", "claude-opus-5-5", "model id")
 	effort := fs.String("effort", "medium", "effort level: low | medium | high")
-	transport := fs.String("transport", "api", "api (Messages API, billed) | batch (Message Batches API, billed at half, asynchronous) | cli (`claude -p`, subscription quota; not the same instrument, see README)")
+	transport := fs.String("transport", "api", "api (Messages API, billed) | batch (Message Batches API, billed at half, asynchronous) | cli (`claude -p`, subscription quota; not the same instrument, see README) | openai (Chat Completions, billed, key from OPENAI_API_KEY; -effort is the reasoning effort)")
 	batchID := fs.String("batch-id", "", "transport batch: attach to an already submitted batch instead of submitting again")
 	noTimes := fs.Bool("no-times", false, "request format: omit cue times (needs a prompt that describes this format)")
 	window := fs.Float64("window", 0, "request format: merge cues into windows of at least this many seconds (0 = off)")
@@ -106,15 +106,15 @@ func runDetect(args []string) error {
 	if !ok {
 		fmt.Fprintf(os.Stderr, "warning: no price for %s, cost will be 0\n", *model)
 	}
-	if *transport != "api" && *transport != "cli" && *transport != "batch" {
-		return fmt.Errorf("-transport must be api, cli or batch, got %q", *transport)
+	if *transport != "api" && *transport != "cli" && *transport != "batch" && *transport != "openai" {
+		return fmt.Errorf("-transport must be api, cli, batch or openai, got %q", *transport)
 	}
 	priceFactor := 1.0
 	if *transport == "batch" {
 		priceFactor = 0.5
 	}
 	runID := fmt.Sprintf("%s-%s-%s", time.Now().UTC().Format("2006-01-02"), *model, prompt.Version)
-	if *transport == "cli" || *transport == "batch" {
+	if *transport == "cli" || *transport == "batch" || *transport == "openai" {
 		runID += "-" + *transport
 	}
 	format := detector.Format{NoTimes: *noTimes, WindowSeconds: *window}
@@ -163,6 +163,12 @@ func runDetect(args []string) error {
 			c.WithThinking()
 		}
 		client, batchClient = c, c
+	case "openai":
+		c, err := detector.NewOpenAI(*model, *effort)
+		if err != nil {
+			return err
+		}
+		client = c
 	default:
 		c, err := detector.NewAnthropic(*model, *effort)
 		if err != nil {

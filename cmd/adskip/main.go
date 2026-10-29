@@ -51,6 +51,8 @@ func main() {
 		err = runRank(os.Args[2:])
 	case "paired":
 		err = runPaired(os.Args[2:])
+	case "agree":
+		err = runAgree(os.Args[2:])
 	case "ceiling":
 		err = runCeiling(os.Args[2:])
 	case "offset":
@@ -80,10 +82,11 @@ func usage() {
   adskip collapse [-provider NAME] [-data DIR] [-lang ru] -id NATIVE_ID
   adskip import   [-data DIR] -file GOLD_JSONL
   adskip evalset  heldout | v0 [-data DIR] [-n 10] [-min-contributors 3] [-exclude c2-spike]
-  adskip detect   -set NAME [-model claude-opus-5-5] [-effort medium] [-transport api|cli] [-tag NAME] [-prompt prompts/v2.2.md] [-limit N] [-dry-run] [-force] [-data DIR]
+  adskip detect   -set NAME [-model claude-opus-5-5] [-effort medium] [-transport api|batch|cli|openai] [-tag NAME] [-prompt prompts/v2.2.md] [-limit N] [-dry-run] [-force] [-data DIR]
   adskip score    -run RUN_ID [-min-seconds 5] [-min-confidence low|medium|high] [-iou 0.5] [-gold all|assessor|reviewed] [-videos FILE] [-list] [-data DIR]
   adskip rank     [-exclude-owner OWNER] [-videos FILE] [-timing-clean] [-lambda 10] label=run[,run...] ...
   adskip paired   [-gold reviewed] [-videos FILE] [-timing-clean] [-lambda 10] [-boot 10000] BASE_RUN CANDIDATE_RUN
+  adskip agree    [-gold reviewed] [-videos FILE] [-gold-iou 0.3] [-min-seconds 5] FIRST_RUN SECOND_RUN
   adskip ceiling  [-min-contributors 2] [-set NAME]   # human-human ceiling in SCORE
   adskip offset   -id NATIVE_ID -seconds N -date YYYY-MM-DD [-note TEXT] [-data DIR]
   adskip flags    -file VIDEO_FLAGS_TSV [-data DIR]
