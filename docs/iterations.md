@@ -86,6 +86,17 @@ cut, still a third of the 6 s/h ceiling. The raw column moves the other way beca
 are mostly ads nobody had labelled. The held-out set has now made two decisions and is not clean
 for the next prompt.
 
+## Stage 6 — on the product (v2.2, Sonnet 5.5, batch; 2026-10-24 … 10-29)
+
+Not runs from `runs/`: these numbers come from the product's dashboard and review pages, where the
+copied detector runs on the videos in its queue.
+
+| Check | Result | Decision |
+|---|---|---|
+| **Blind sample of served segments** (2026-10-28): 50 of 287 serving videos, reviewed on the product's review page. | 50 of 50 confirmed with the proposed category (20 sponsor, 30 self-promotion), no bounds corrected. Precision lower bound ~94% (rule of three). | Consistent with held-out seconds precision 0.95. Timing is not measured by it: a median 24 s per item and no correction reads as "no visibly wrong cut". |
+| **Price per video**, 1,027 runs. | **$0.050**, twice the held-out $0.025 with the same prompt, model and transport. | Not explained. Spend is ~99% input tokens, so the gap is transcript length; eval sets take only 10–60-minute videos, and whether longer videos in the product queue carry the cost is not checked. The product's daily budget is sized to the observed price. |
+| **Self-promotion at `medium`** served without a review (the product serves it only at `high`). | Held-out v2.2: SCORE 0.40 → 0.35 (ad removed 52% → 57%, content wrongly cut ×1.8); per-segment precision of `medium` 0.74. The product's sheet of below-threshold segments: 62 of 63 `medium` self-promotion items confirmed as ads. | Kept at `high`. The two disagree, and the product sheet is weaker evidence: one reviewer, model-flagged stretches only, several held-out `medium` false positives are reviewer-confirmed model errors. Revisit on new gold. |
+
 ## Rules this history produced
 
 1. Review disagreements before reading a number against crowd labels.
