@@ -18,6 +18,7 @@ var Prices = map[string]Price{
 	"gpt-5":         {Input: 1.25, Output: 10, CacheRead: 0.125},
 	"gpt-5-mini":    {Input: 0.25, Output: 2, CacheRead: 0.025},
 	"gpt-5.6-luna":  {Input: 0.20, Output: 1.20, CacheRead: 0.02},
+	"gpt-6-luna":    {Input: 0.10, Output: 0.50, CacheRead: 0.01}, // x2 input, x1.5 output above 272K input tokens: not modelled
 	"gpt-6.1-terra": {Input: 1, Output: 5, CacheRead: 0.05},
 	"gpt-6.1-sol":   {Input: 2, Output: 10, CacheRead: 0.10},
 }

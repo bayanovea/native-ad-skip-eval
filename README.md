@@ -244,7 +244,7 @@ quality problem from the first fetch rather than discovering it on the third set
 ./adskip detect -set dev -dry-run
 ./adskip detect -set dev -model claude-sonnet-5-5 -transport batch -prompt prompts/v2.2.md -no-times
 ./adskip detect -set dev -model claude-sonnet-5-5 -transport cli -prompt prompts/v2.2.md -no-times [-thinking -effort high]
-./adskip detect -set dev -model gpt-5-mini -transport openai -effort low -prompt prompts/v2.2.md -no-times  # OPENAI_API_KEY
+./adskip detect -set dev -model gpt-6-luna -transport openai -effort medium -prompt prompts/v2.2.md -no-times  # OPENAI_API_KEY
 
 # Scoring. Thresholds are flags; predictions are stored raw.
 ./adskip score -run RUN -iou 0.3 -gold reviewed            # headline; -detail for the full table; -list for misses
