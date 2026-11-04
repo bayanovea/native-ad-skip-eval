@@ -26,8 +26,8 @@ type runConfig struct {
 	Thinking      bool           `json:"thinking,omitempty"`
 	NoTimes       bool           `json:"no_times,omitempty"`
 	WindowSeconds float64        `json:"window_seconds,omitempty"`
-	Transport     string         `json:"transport"`              // api | cli | batch | openai
-	PriceFactor   float64        `json:"price_factor,omitempty"` // 0.5 for batch: the Batches API bills half
+	Transport     string         `json:"transport"`              // api | cli | batch | openai | openai-batch
+	PriceFactor   float64        `json:"price_factor,omitempty"` // 0.5 for batch and openai-batch: both batch APIs bill half
 	BatchID       string         `json:"batch_id,omitempty"`
 	CLIVersion    string         `json:"cli_version,omitempty"` // transport=cli only: the instrument changes with releases
 	PromptVersion string         `json:"prompt_version"`
@@ -71,8 +71,8 @@ func runDetect(args []string) error {
 	set := fs.String("set", "", "eval set name under <data>/evalsets (required)")
 	model := fs.String("model", "claude-opus-5-5", "model id")
 	effort := fs.String("effort", "medium", "effort level: low | medium | high")
-	transport := fs.String("transport", "api", "api (Messages API, billed) | batch (Message Batches API, billed at half, asynchronous) | cli (`claude -p`, subscription quota; not the same instrument, see README) | openai (Chat Completions, billed, key from OPENAI_API_KEY; -effort is the reasoning effort)")
-	batchID := fs.String("batch-id", "", "transport batch: attach to an already submitted batch instead of submitting again")
+	transport := fs.String("transport", "api", "api (Messages API, billed) | batch (Message Batches API, billed at half, asynchronous) | cli (`claude -p`, subscription quota; not the same instrument, see README) | openai (Chat Completions, billed, key from OPENAI_API_KEY; -effort is the reasoning effort) | openai-batch (OpenAI Batch API, billed at half, asynchronous, key as openai)")
+	batchID := fs.String("batch-id", "", "transport batch or openai-batch: attach to an already submitted batch instead of submitting again")
 	noTimes := fs.Bool("no-times", false, "request format: omit cue times (needs a prompt that describes this format)")
 	window := fs.Float64("window", 0, "request format: merge cues into windows of at least this many seconds (0 = off)")
 	thinking := fs.Bool("thinking", false, "thinking on: cli keeps it on (off by default there), api/batch send thinking {type: adaptive} (the API default is no thinking output)")
@@ -106,15 +106,17 @@ func runDetect(args []string) error {
 	if !ok {
 		fmt.Fprintf(os.Stderr, "warning: no price for %s, cost will be 0\n", *model)
 	}
-	if *transport != "api" && *transport != "cli" && *transport != "batch" && *transport != "openai" {
-		return fmt.Errorf("-transport must be api, cli, batch or openai, got %q", *transport)
+	switch *transport {
+	case "api", "cli", "batch", "openai", "openai-batch":
+	default:
+		return fmt.Errorf("-transport must be api, cli, batch, openai or openai-batch, got %q", *transport)
 	}
 	priceFactor := 1.0
-	if *transport == "batch" {
+	if *transport == "batch" || *transport == "openai-batch" {
 		priceFactor = 0.5
 	}
 	runID := fmt.Sprintf("%s-%s-%s", time.Now().UTC().Format("2006-01-02"), *model, prompt.Version)
-	if *transport == "cli" || *transport == "batch" || *transport == "openai" {
+	if *transport != "api" {
 		runID += "-" + *transport
 	}
 	format := detector.Format{NoTimes: *noTimes, WindowSeconds: *window}
@@ -141,7 +143,10 @@ func runDetect(args []string) error {
 	}
 
 	var client detector.Client
-	var batchClient *detector.AnthropicBatch
+	var batchClient interface {
+		Submit(context.Context, []detector.Request) (string, error)
+		Wait(context.Context, string, time.Duration, func(string)) error
+	}
 	switch *transport {
 	case "cli":
 		c, err := detector.NewClaudeCLI(*model, *effort)
@@ -169,6 +174,12 @@ func runDetect(args []string) error {
 			return err
 		}
 		client = c
+	case "openai-batch":
+		c, err := detector.NewOpenAIBatch(*model, *effort)
+		if err != nil {
+			return err
+		}
+		client, batchClient = c, c
 	default:
 		c, err := detector.NewAnthropic(*model, *effort)
 		if err != nil {

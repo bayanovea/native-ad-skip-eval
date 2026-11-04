@@ -84,7 +84,7 @@ func usage() {
   adskip collapse [-provider NAME] [-data DIR] [-lang ru] -id NATIVE_ID
   adskip import   [-data DIR] -file GOLD_JSONL
   adskip evalset  heldout | v0 [-data DIR] [-n 10] [-min-contributors 3] [-exclude c2-spike]
-  adskip detect   -set NAME [-model claude-opus-5-5] [-effort medium] [-transport api|batch|cli|openai] [-tag NAME] [-prompt prompts/v2.2.md] [-limit N] [-dry-run] [-force] [-data DIR]
+  adskip detect   -set NAME [-model claude-opus-5-5] [-effort medium] [-transport api|batch|cli|openai|openai-batch] [-tag NAME] [-prompt prompts/v2.2.md] [-limit N] [-dry-run] [-force] [-data DIR]
   adskip score    -run RUN_ID [-min-seconds 5] [-min-confidence low|medium|high] [-iou 0.5] [-gold all|assessor|reviewed] [-videos FILE] [-list] [-data DIR]
   adskip rank     [-exclude-owner OWNER] [-videos FILE] [-timing-clean] [-lambda 10] label=run[,run...] ...
   adskip paired   [-gold reviewed] [-videos FILE] [-timing-clean] [-lambda 10] [-boot 10000] BASE_RUN CANDIDATE_RUN
