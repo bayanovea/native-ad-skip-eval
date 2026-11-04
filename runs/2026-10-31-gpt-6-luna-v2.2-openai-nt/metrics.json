@@ -1,0 +1,31 @@
+{
+  "videos": 292,
+  "status": {
+    "no_transcript": 75,
+    "ok": 217
+  },
+  "segments_by_category": {
+    "self_promotion": 276,
+    "sponsor": 217
+  },
+  "segments_by_confidence": {
+    "high": 402,
+    "low": 2,
+    "medium": 89
+  },
+  "segments_quote_mismatch": 186,
+  "videos_with_segments": 187,
+  "tokens": {
+    "Input": 3624558,
+    "Output": 188385,
+    "CacheRead": 266544,
+    "CacheWrite": 0
+  },
+  "cost_usd": 0.4593137399999999,
+  "cost_usd_per_ok_video": 0.0021166531797235017,
+  "latency_ms": {
+    "P50": 8076,
+    "P95": 27491,
+    "Max": 43078
+  }
+}
