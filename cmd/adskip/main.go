@@ -57,6 +57,8 @@ func main() {
 		err = runCeiling(os.Args[2:])
 	case "offset":
 		err = runOffset(os.Args[2:])
+	case "mcp":
+		err = runMCP(os.Args[2:])
 	case "flags":
 		err = runFlags(os.Args[2:])
 	case "sheet":
@@ -92,7 +94,8 @@ func usage() {
   adskip flags    -file VIDEO_FLAGS_TSV [-data DIR]
   adskip sheet    -runs RUN1,RUN2,... -out PATH.md [-min-seconds 5] [-data DIR]
   adskip compare  -a RUN -b RUN [-iou 0.5] [-min-seconds 5] [-data DIR]
-  adskip review   -file VERDICTS_TSV -run RUN_ID -date YYYY-MM-DD [-reviewer NAME] [-data DIR]`)
+  adskip review   -file VERDICTS_TSV -run RUN_ID -date YYYY-MM-DD [-reviewer NAME] [-data DIR]
+  adskip mcp      [-runs DIR] [-data DIR]   # MCP server on stdio: list_runs, get_run_metrics`)
 }
 
 // providerFlag registers -provider; "" resolves to the only configured platform.
