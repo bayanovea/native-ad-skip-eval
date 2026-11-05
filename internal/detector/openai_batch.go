@@ -25,7 +25,12 @@ type OpenAIBatch struct {
 	mu      sync.Mutex
 	results map[string]batchOutcome
 	ended   string // how the last loaded batch ended, for a request with no line in either file
+	failed  bool   // the last loaded batch failed as a whole
 }
+
+// ErrBatchFailed marks a request of a batch the vendor failed as a whole (validation, the
+// organization's enqueued-token limit): nothing was processed or billed, so it may be sent again.
+var ErrBatchFailed = errors.New("batch failed")
 
 // NewOpenAIBatch builds the client; the key as for OpenAI.
 func NewOpenAIBatch(model, effort string, opts ...option.RequestOption) (*OpenAIBatch, error) {
@@ -137,6 +142,7 @@ func (b *OpenAIBatch) load(ctx context.Context, batch *openai.Batch) error {
 	b.mu.Lock()
 	defer b.mu.Unlock()
 	b.ended = fmt.Sprintf("batch %s %s", batch.ID, batch.Status)
+	b.failed = batch.Status == openai.BatchStatusFailed
 	for _, e := range batch.Errors.Data {
 		b.ended += fmt.Sprintf("; %s: %s", e.Code, e.Message)
 	}
@@ -194,6 +200,9 @@ func (b *OpenAIBatch) Detect(_ context.Context, req Request) (Result, error) {
 	b.mu.Lock()
 	defer b.mu.Unlock()
 	o, ok := b.results[req.Key]
+	if !ok && b.failed {
+		return Result{}, fmt.Errorf("%w: no result for %q (%s)", ErrBatchFailed, req.Key, b.ended)
+	}
 	if !ok && b.ended != "" {
 		return Result{}, fmt.Errorf("batch has no result for %q (%s)", req.Key, b.ended)
 	}

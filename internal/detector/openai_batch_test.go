@@ -3,6 +3,7 @@ package detector
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -14,7 +15,7 @@ import (
 )
 
 // openAIBatchServer serves one batch, b_1, with the given status and files.
-func openAIBatchServer(t *testing.T, status *string, output, errors string, uploaded *string) *OpenAIBatch {
+func openAIBatchServer(t *testing.T, status *string, output, errFile string, uploaded *string) *OpenAIBatch {
 	t.Helper()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
@@ -42,7 +43,7 @@ func openAIBatchServer(t *testing.T, status *string, output, errors string, uplo
 		case "/files/file_out/content":
 			io.WriteString(w, output)
 		case "/files/file_err/content":
-			io.WriteString(w, errors)
+			io.WriteString(w, errFile)
 		default:
 			http.NotFound(w, r)
 		}
@@ -122,6 +123,9 @@ func TestOpenAIBatchEndedStatuses(t *testing.T) {
 			_, err := c.Detect(context.Background(), Request{Key: "a"})
 			if err == nil || !strings.Contains(err.Error(), "b_1 "+s) || !strings.Contains(err.Error(), "no such model") {
 				t.Fatalf("want an error naming the batch's end, got %v", err)
+			}
+			if errors.Is(err, ErrBatchFailed) != (s == "failed") {
+				t.Fatalf("ErrBatchFailed only for a failed batch, got %v", err)
 			}
 		})
 	}
