@@ -7,7 +7,8 @@ the first, `modernc.org/sqlite`, no cgo).
 
 ## Layout
 
-- `cmd/adskip` — the single CLI (`fetch`, `collapse`, `import`, `evalset`, `detect`, `score`).
+- `cmd/adskip` — the single CLI (`fetch`, `collapse`, `import`, `evalset`, `detect`, `score`). `adskip mcp` serves two
+  read-only tools (`list_runs`, `get_run_metrics`) to an MCP host over stdio; SCORE is computed live from the store like `rank`.
 - `internal/vtt` — WebVTT parsing and collapsing of rolling captions into plain cues.
 - `internal/transcript` — the JSONL transcript format (meta line + cue lines).
 - `internal/ytdlp` — thin wrapper over the `yt-dlp` binary with retries.

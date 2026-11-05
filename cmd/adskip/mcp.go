@@ -227,7 +227,7 @@ func headlineMetrics(ctx context.Context, st *store.Store, data, runsDir string,
 
 	var b strings.Builder
 	fmt.Fprintf(&b, "run %s (%s/%s, prompt %s, eval set %s)\n", cfg.ID, cfg.Model, cfg.Effort, cfg.PromptVersion, cfg.Evalset)
-	fmt.Fprintf(&b, "SCORE               %.2f\n", net)
+	fmt.Fprintf(&b, "SCORE               %.2f (1.0 = perfect, 0 = no detector, below 0 = worse than no detector)\n", net)
 	fmt.Fprintf(&b, "ad time removed     %.0f%%\n", 100*x.Recall())
 	fmt.Fprintf(&b, "precision (seconds) %.0f%%\n", 100*x.Precision())
 	fmt.Fprintf(&b, "content wrongly cut %s\n", wrongPerHour)
