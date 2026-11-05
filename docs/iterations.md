@@ -97,6 +97,55 @@ copied detector runs on the videos in its queue.
 | **Price per video**, 1,027 runs. | **$0.050**, twice the held-out $0.025 with the same prompt, model and transport. | Not explained. Spend is ~99% input tokens, so the gap is transcript length; eval sets take only 10–60-minute videos, and whether longer videos in the product queue carry the cost is not checked. The product's daily budget is sized to the observed price. |
 | **Self-promotion at `medium`** served without a review (the product serves it only at `high`). | Held-out v2.2: SCORE 0.40 → 0.35 (ad removed 52% → 57%, content wrongly cut ×1.8); per-segment precision of `medium` 0.74. The product's sheet of below-threshold segments: 62 of 63 `medium` self-promotion items confirmed as ads. | Kept at `high`. The two disagree, and the product sheet is weaker evidence: one reviewer, model-flagged stretches only, several held-out `medium` false positives are reviewer-confirmed model errors. Revisit on new gold. |
 
+## Stage 7 — the detector swap: gpt-6.1-terra detects, Haiku 5.5 confirms (2026-11-04 … 11-05)
+
+The product's Claude bill limited it to 230 videos a day, and an OpenAI allowance sat unused, so the roles were
+swapped: an OpenAI model detects through the OpenAI Batch API, a cheap Claude model gives the second opinion (the
+product serves a segment only when both models found it). The held-out set's third decision.
+
+terra alone (v2.2, effort `medium`, `-transport openai-batch`, 217 videos): **$0.0093 a video** ($2.02), ~376 output
+tokens a video, batches of 40 videos ended in 1.5–3.5 min. A first batch of all 217 videos failed as a whole: the
+organization's limit on tokens enqueued in running batches (1.35M for this model) is checked after create, when the
+batch is polled, so runs go in chunks of ≤ ~1M tokens. Haiku 5.5 on the same set: $0.0023 a video ($0.68 for 292).
+
+| Run, reviewed gold (Sonnet v2.2's sheets) | SCORE | ad time removed | content wrongly cut |
+|---|---|---|---|
+| Sonnet 5.5 v2.2 | 0.40 | 52% | 374 s (2.1 s/h) |
+| gpt-6.1-terra v2.2 | −0.07 | 67% | 2,218 s |
+| gpt-6-luna v2.2 | −0.39 | — | 3,035 s |
+
+`adskip paired` Sonnet → terra: −0.47, 95% CI [−0.76, −0.24] by videos, [−0.57, −0.35] by channels. The gold was built
+from Sonnet's stretches (rule 3): terra's wrongly cut seconds are mostly stretches no sheet has reviewed, and on raw
+labels 90% of Sonnet's own "wrongly cut" seconds turned out to be ads.
+
+A first terra sheet came out at 339 items: since the provider became a config entry (2026-10-28) `adskip sheet`
+looked labels up under the unresolved empty provider name, so no human label counted as covered. Fixed; the real
+count is 103.
+
+The product never serves the detector alone, so the pair is what decides. `adskip agree` for every detector ×
+checker pair on the same videos (reviewed gold, gold IoU 0.3, agreement IoU 0.3; served = confirmed entries above the
+product's thresholds):
+
+| Pair | proposed | unconfirmed per video | true ads vetoed | wrong cuts vetoed | served true / wrong |
+|---|---|---|---|---|---|
+| Sonnet → luna (the product until now) | 311 | 0.14 | 6 / 250 | 25 / 61 | 244 / 36 |
+| Sonnet → Haiku | 309 | 0.25 | 31 / 248 | 22 / 61 | 217 / 39 |
+| terra → luna | 451 | 0.30 | 21 / 324 | 45 / 127 | 303 / 82 |
+| terra → Haiku | 447 | 0.73 | 71 / 321 | 87 / 126 | 250 / 39 |
+| terra → Sonnet | 451 | 0.56 | 31 / 324 | 90 / 127 | 293 / 37 |
+
+Crossing the pairs separates the two effects. terra makes twice Sonnet's wrong cuts (127 against 61), so with the
+same checker the unconfirmed share doubles (0.14 → 0.30). Haiku is the stricter checker: on Sonnet's segments it
+vetoes five times luna's true ads at the same wrong cuts caught, so as Sonnet's checker it is worse than luna. On
+terra's segments luna lets 82 wrong cuts through, Haiku 39, and terra → Haiku serves what Sonnet → luna serves.
+Its cost is recall and review load: every unconfirmed entry is an assessor item in the product, 0.73 a video. Sonnet
+as the checker is the best pair here, but it sits on Sonnet-built gold and costs ~14× Haiku.
+
+Decision (owner, 2026-11-05): terra → Haiku goes to the product. The solo gate (SCORE ≥ 0.15, ≤ 6 s/h) is replaced
+for a detector that never serves alone: the segments terra → Haiku would serve outside the reviewed gold (15, 508 s;
+Sonnet → luna serves none outside it) get a blind sheet (`sheet -confirmed-by`), and the pair must serve no more wrong cuts per hour than Sonnet → luna on that gold. Pending at the time
+of writing.
+
 ## Rules this history produced
 
 1. Review disagreements before reading a number against crowd labels.
@@ -109,3 +158,5 @@ copied detector runs on the videos in its queue.
    set that gates the next change before running it.
 7. Compare two runs by the paired difference and its interval on the same videos and the same gold,
    resampling the independent unit (video, or channel), never by two separate averages.
+8. When the product serves only what two models agree on, gate the pair, not the detector, and cross detectors
+   with checkers on the same videos to tell their effects apart.
