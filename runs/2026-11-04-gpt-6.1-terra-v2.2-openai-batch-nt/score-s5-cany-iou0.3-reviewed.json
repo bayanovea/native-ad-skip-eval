@@ -1,0 +1,169 @@
+{
+  "run": "2026-11-04-gpt-6.1-terra-v2.2-openai-batch-nt",
+  "settings": {
+    "min_seconds": 5,
+    "min_confidence": "any",
+    "iou": 0.3,
+    "gold": "reviewed"
+  },
+  "videos_scored": 217,
+  "predictions_total": 531,
+  "predictions_scored": 489,
+  "reviews_applied": 230,
+  "gold_segments_merged": {
+    "self_promotion": 196,
+    "sponsor": 229
+  },
+  "categories": {
+    "any_ad": {
+      "seconds": {
+        "precision": 0.873,
+        "recall": 0.68,
+        "wrongly_skipped_s": 2967.8,
+        "missed_ad_s": 9647.4,
+        "predicted_s": 23444.3,
+        "gold_s": 30123.9
+      },
+      "TP": 340,
+      "FP": 149,
+      "FN": 82,
+      "precision": 0.695,
+      "recall": 0.806,
+      "f1": 0.746,
+      "by_confidence": {
+        "high": {
+          "TP": 325,
+          "FP": 103,
+          "precision": 0.759
+        },
+        "medium": {
+          "TP": 15,
+          "FP": 46,
+          "precision": 0.246
+        }
+      },
+      "start_error": {
+        "n": 340,
+        "median_signed_s": 0,
+        "abs_p50_s": 2.3,
+        "abs_p90_s": 17.9,
+        "within_tolerance": {
+          "10s": 0.771,
+          "2s": 0.476,
+          "5s": 0.662
+        }
+      },
+      "end_error": {
+        "n": 340,
+        "median_signed_s": 0,
+        "abs_p50_s": 2.2,
+        "abs_p90_s": 17.5,
+        "within_tolerance": {
+          "10s": 0.821,
+          "2s": 0.488,
+          "5s": 0.691
+        }
+      }
+    },
+    "self_promotion": {
+      "seconds": {
+        "precision": 0.53,
+        "recall": 0.784,
+        "wrongly_skipped_s": 3644.3,
+        "missed_ad_s": 1133.2,
+        "predicted_s": 7747.2,
+        "gold_s": 5236.1
+      },
+      "TP": 156,
+      "FP": 121,
+      "FN": 40,
+      "precision": 0.563,
+      "recall": 0.796,
+      "f1": 0.66,
+      "by_confidence": {
+        "high": {
+          "TP": 148,
+          "FP": 91,
+          "precision": 0.619
+        },
+        "medium": {
+          "TP": 8,
+          "FP": 30,
+          "precision": 0.211
+        }
+      },
+      "start_error": {
+        "n": 156,
+        "median_signed_s": 0,
+        "abs_p50_s": 1.4,
+        "abs_p90_s": 13.4,
+        "within_tolerance": {
+          "10s": 0.846,
+          "2s": 0.545,
+          "5s": 0.769
+        }
+      },
+      "end_error": {
+        "n": 156,
+        "median_signed_s": 0,
+        "abs_p50_s": 0.1,
+        "abs_p90_s": 5,
+        "within_tolerance": {
+          "10s": 0.942,
+          "2s": 0.724,
+          "5s": 0.897
+        }
+      }
+    },
+    "sponsor": {
+      "seconds": {
+        "precision": 0.969,
+        "recall": 0.611,
+        "wrongly_skipped_s": 480.2,
+        "missed_ad_s": 9674,
+        "predicted_s": 15697.1,
+        "gold_s": 24891
+      },
+      "TP": 175,
+      "FP": 37,
+      "FN": 54,
+      "precision": 0.825,
+      "recall": 0.764,
+      "f1": 0.794,
+      "by_confidence": {
+        "high": {
+          "TP": 168,
+          "FP": 21,
+          "precision": 0.889
+        },
+        "medium": {
+          "TP": 7,
+          "FP": 16,
+          "precision": 0.304
+        }
+      },
+      "start_error": {
+        "n": 175,
+        "median_signed_s": 2.4,
+        "abs_p50_s": 3.1,
+        "abs_p90_s": 22.2,
+        "within_tolerance": {
+          "10s": 0.691,
+          "2s": 0.411,
+          "5s": 0.554
+        }
+      },
+      "end_error": {
+        "n": 175,
+        "median_signed_s": -4.7,
+        "abs_p50_s": 5.2,
+        "abs_p90_s": 22,
+        "within_tolerance": {
+          "10s": 0.709,
+          "2s": 0.274,
+          "5s": 0.497
+        }
+      }
+    }
+  }
+}
