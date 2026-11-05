@@ -28,6 +28,11 @@ type sheetItem struct {
 //
 //	adskip sheet -runs RUN1,RUN2,... -out <data>/review/2026-10-12-blind.md
 //	adskip sheet -misses -runs RUN1,RUN2 -out <data>/review/2026-10-22-dev-misses.md
+//	adskip sheet -runs FIRST1,FIRST2 -confirmed-by SECOND1,SECOND2 -out <data>/review/2026-11-05-served.md
+//
+// With -confirmed-by, each run i keeps only what the product would serve of it
+// with run i as the second opinion (score.ServedConfirmed at IoU 0.3): the
+// sheet then covers the served segments of each pair that gold does not.
 //
 // An item is a stretch of a video that at least one run flagged and that the
 // reviewed gold does not cover yet. Items are clustered across runs, shuffled
@@ -45,6 +50,7 @@ func runSheet(args []string) error {
 	out := fs.String("out", "", "output .md path, outside the repo (required)")
 	minSec := fs.Float64("min-seconds", 5, "ignore predictions shorter than this")
 	conflicts := fs.Bool("conflicts", false, "category-conflict sheet: stretches where a run's category differs from the human one (instead of uncovered stretches)")
+	confirmedBy := fs.String("confirmed-by", "", "comma-separated second-opinion runs, one per -runs entry: keep only what each pair serves")
 	misses := fs.Bool("misses", false, "miss sheet: human-labelled ad stretches no run found under the product thresholds (load its verdicts with review -misses)")
 	if err := fs.Parse(args); err != nil {
 		return err
@@ -53,6 +59,17 @@ func runSheet(args []string) error {
 		return fmt.Errorf("-runs and -out are required")
 	}
 	runs := strings.Split(*runsFlag, ",")
+	var seconds []string
+	if *confirmedBy != "" {
+		if seconds = strings.Split(*confirmedBy, ","); len(seconds) != len(runs) || *misses || *conflicts {
+			return fmt.Errorf("-confirmed-by needs one run per -runs entry and no -misses / -conflicts")
+		}
+	}
+	// Before any lookup: labels and transcripts are keyed by the resolved name, not "".
+	prov, err := resolveProvider(providerName)
+	if err != nil {
+		return err
+	}
 	ctx := context.Background()
 	st, err := store.Open(store.Path(*data))
 	if err != nil {
@@ -70,7 +87,7 @@ func runSheet(args []string) error {
 		return err
 	}
 	byVideo := map[string][]flag1{}
-	for _, r := range runs {
+	for i, r := range runs {
 		ok, err := okSet(ctx, st, r)
 		if err != nil {
 			return err
@@ -78,6 +95,11 @@ func runSheet(args []string) error {
 		ps, err := st.Predictions(ctx, r)
 		if err != nil {
 			return err
+		}
+		if seconds != nil {
+			if ps, err = servedConfirmed(ctx, st, ps, seconds[i], *minSec); err != nil {
+				return err
+			}
 		}
 		for _, p := range ps {
 			if ok[p.NativeID] && p.End-p.Start >= *minSec {
@@ -185,10 +207,6 @@ func runSheet(args []string) error {
 		return shuffleKey(items[i].video, items[i].start) < shuffleKey(items[j].video, items[j].start)
 	})
 
-	prov, err := resolveProvider(providerName)
-	if err != nil {
-		return err
-	}
 	var md, key strings.Builder
 	if *misses {
 		fmt.Fprintf(&md, "# Miss review sheet (private, not in the repo)\n\nFor every item, write one verdict: **sponsor** / **self_promotion** / **not an ad** / **unclear** (+ one line why).\nThe stretch is labelled as an ad by humans and no detector run found it; stretches with almost no subtitle text are left out. The source is not shown on the review page. Times are player times.\n\n")
@@ -226,6 +244,33 @@ func runSheet(args []string) error {
 	}
 	fmt.Printf("%d items from %d runs -> %s (key: %s)\n", len(items), len(runs), *out, keyPath)
 	return nil
+}
+
+// servedConfirmed keeps the predictions the product would serve with second as
+// the second opinion; videos the second run did not answer serve nothing here,
+// as a failed second call is not what this sheet is about.
+func servedConfirmed(ctx context.Context, st *store.Store, ps []store.Prediction, second string, minSec float64) ([]store.Prediction, error) {
+	ok, err := okSet(ctx, st, second)
+	if err != nil {
+		return nil, err
+	}
+	sp, err := st.Predictions(ctx, second)
+	if err != nil {
+		return nil, err
+	}
+	var secondPreds []score.Pred
+	for _, p := range sp {
+		secondPreds = append(secondPreds, score.Pred{Video: p.NativeID, Category: p.Category, Start: p.Start, End: p.End, Confidence: p.Confidence})
+	}
+	opt := score.AgreeOptions{Served: score.Options{MinSeconds: minSec, MinConfidenceBy: productConfidence}, IoU: 0.3}
+	var out []store.Prediction
+	for _, p := range ps {
+		first := []score.Pred{{Video: p.NativeID, Category: p.Category, Start: p.Start, End: p.End, Confidence: p.Confidence}}
+		if ok[p.NativeID] && len(score.ServedConfirmed(first, secondPreds, opt)) == 1 {
+			out = append(out, p)
+		}
+	}
+	return out, nil
 }
 
 func inside(f span, cov []span) float64 {

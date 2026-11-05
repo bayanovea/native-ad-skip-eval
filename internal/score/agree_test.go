@@ -26,4 +26,8 @@ func TestAgree(t *testing.T) {
 	if got := Agree(golds, first, second, opt); got.TPVetoed != 1 || got.Confirmed != 0 {
 		t.Fatalf("IoU 0.9: %+v", got)
 	}
+	opt.IoU = 0.5
+	if got := ServedConfirmed(first, second, opt); len(got) != 1 || got[0] != first[0] {
+		t.Fatalf("ServedConfirmed: %+v", got)
+	}
 }

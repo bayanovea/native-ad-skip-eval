@@ -53,6 +53,18 @@ func Agree(golds []Gold, first, second []Pred, opt AgreeOptions) Agreement {
 	return a
 }
 
+// ServedConfirmed is what the product serves of the first model under the
+// two-model rule: the first model's served segments a second-model segment confirms.
+func ServedConfirmed(first, second []Pred, opt AgreeOptions) []Pred {
+	var out []Pred
+	for _, p := range first {
+		if served(p, opt.Served) && matchesAny(p, second, opt.IoU) {
+			out = append(out, p)
+		}
+	}
+	return out
+}
+
 func served(p Pred, opt Options) bool {
 	if p.End-p.Start < opt.MinSeconds {
 		return false
